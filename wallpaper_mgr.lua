@@ -1,0 +1,1081 @@
+require("stream")
+require("strutil")
+require("xml")
+require("process")
+require("filesys")
+
+
+
+function SelectRandomItem(choices)
+local val
+
+if #choices < 1 then return nil end
+
+val=math.random(#choices)
+return choices[val]
+end
+
+
+
+function ShowCurrWallpaperDetails()
+local dir,S
+
+dir=process.getenv("HOME").."/.local/share/wallpaper/"
+S=stream.STREAM(dir.."wallpapers.curr", "r")
+if S ~= nil
+then
+	print(S:readdoc())
+	S:close()
+end
+
+end
+
+function ShowCurrWallpaperTitle()
+local dir,S,str
+local title=""
+
+dir=process.getenv("HOME").."/.local/share/wallpaper/"
+S=stream.STREAM(dir.."wallpapers.curr", "r")
+if S ~= nil
+then
+  str=S:readln()
+	while str ~= nil
+	do
+	str=strutil.trim(str)
+	if string.sub(str, 1, 5) == "url: " then url=string.sub(str, 6) end
+	if string.sub(str, 1, 7) == "title: " then title=string.sub(str, 8) end
+  str=S:readln()
+	end
+	S:close()
+end
+
+if strutil.strlen(title) > 0 then print(title) 
+else print(filesys.basename(url))
+end
+end
+
+
+--"chandra:dwarf", "chandra:snr", "chandra:quasars", "chandra:nstars",  "chandra:clusters", "chandra:bh"}
+
+
+function InitSources()
+local mod={}
+
+mod.default_sources={"bing:zh-CN", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters"}
+
+
+
+mod.parse=function(self, src_list)
+local toks, tok
+local sources={}
+
+toks=strutil.TOKENIZER(src_list, ",")
+tok=toks:next()
+while tok ~= nil
+do
+table.insert(sources, tok)
+tok=toks:next()
+end
+
+return sources
+end
+
+
+
+mod.load=function(self, include_disabled)
+local S, str
+local sources={}
+
+S=stream.STREAM(working_dir .. "/sources.lst", "r")
+if S == nil then return nil end
+
+str=S:readln()
+while str ~= nil
+do
+str=strutil.trim(str)
+if include_disabled == true or string.sub(str, 1, 2) ~= '#' then table.insert(sources, str) end
+str=S:readln()
+end
+S:close()
+
+return sources
+end
+
+
+
+mod.save=function(self, sources)
+local S, str,i
+
+filesys.mkdirPath(working_dir.."/")
+S=stream.STREAM(working_dir .. "/sources.lst", "w")
+print("SAVE:"..working_dir.." "..tostring(S))
+if S == nil then return nil end
+
+for i, str in ipairs(sources)
+do
+	S:writeln(str.."\n")
+end
+S:close()
+
+end
+
+
+mod.select=function(self, source)
+local obj
+
+if string.sub(source, 1, 5)=="bing:" then obj=InitBing()
+elseif string.sub(source, 1, 5)=="nasa:" then obj=InitNASA()
+elseif string.sub(source, 1, 8)=="chandra:" then obj=InitChandra()
+elseif string.sub(source, 1, 10)=="esahubble:" then obj=InitESAHubble()
+elseif string.sub(source, 1, 13)=="wallpapers13:" then obj=InitWallpapers13()
+elseif string.sub(source, 1, 14)=="getwallpapers:" then obj=InitGetWallpapers()
+elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
+elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
+elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
+elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
+end
+
+return obj
+end
+
+
+mod.list=function(self)
+local sources
+
+sources=self:load(true)
+for i,item in ipairs(sources) do print(tostring(i) .. ": " .. item) end
+end
+
+
+mod.disable=function(self, target)
+local sources
+
+sources=self:load(true)
+for i,item in ipairs(sources)
+do
+	if item==target then sources[i]="#"..item end
+end
+self:save(sources)
+
+end
+
+
+
+mod.enable=function(self, target)
+local sources
+
+sources=self:load(true)
+for i,item in ipairs(sources)
+do
+	if item == "#"..target then sources[i]=target end
+end
+self:save(sources)
+
+end
+
+
+mod.random=function(self, source_list)
+local choice
+
+if source_list ~= nil then choice= SelectRandomItem(source_list)
+else choice=SelectRandomItem(self.sources)
+end
+
+return choice
+end
+
+
+mod.sources=mod:load()
+if mod.sources == nil
+then
+	mod:save(mod.default_sources)
+	mod.sources=mod:load()
+end
+
+
+return mod
+
+end
+
+
+
+
+function HtmlTagExtractHRef(data, identifier) 
+local toks, tok, url, str
+local is_target=false
+
+if strutil.strlen(identifier) == 0 then is_target=true end
+
+str=data
+toks=strutil.TOKENIZER(str, "\\S", "Q")
+tok=toks:next()
+while tok ~= nil
+do
+	if tok == identifier then is_target=true end
+	if string.sub(tok, 1, 5) == 'href='
+	then 
+	 url=strutil.stripQuotes(string.sub(tok, 6))
+	end
+tok=toks:next()
+end
+
+if is_target == true then return url end
+return("")
+end
+
+
+
+-- module to get daily wallpaper from bing.com
+
+
+function InitBing()
+local mod={}
+
+
+
+mod.get=function(self, source)
+local S, XML, tag, page_url, str
+local url=""
+local title=""
+local description=""
+
+page_url="http://www.bing.com/"
+if strutil.strlen(source) > 0
+then
+  if string.sub(source, 1, 5) == "bing:" then page_url=page_url..  "?mkt=" .. string.sub(source, 6) end
+end
+
+S=stream.STREAM(page_url,"r")
+if S ~= nil
+then
+	str=S:readdoc()
+	XML=xml.XML(str)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+		if tag.type=="link" 
+		then 
+			str=HtmlTagExtractHRef(tag.data, 'id="preloadBg"')
+			if strutil.strlen(str) > 0 then url="http://www.bing.com" .. str end
+		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then description=XML:next().value
+		-- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then title=XML:next().value
+		elseif tag.type=='a' 
+		then
+						if string.find(tag.data, 'class="title"') then title=XML:next().value end
+		end
+		tag=XML:next()
+	end
+
+end
+
+return url
+
+end
+
+return mod
+end
+
+
+-- module to download the current daily astronomy picture from apod.nasa.gov
+
+
+function InitNASA()
+local mod={}
+
+mod.anchor_tag=function(self, data) 
+local toks, tok, url
+local is_preload=false
+
+toks=strutil.TOKENIZER(data, "\\S")
+tok=toks:next()
+while tok ~= nil
+do
+if string.sub(tok, 1, 12) == 'href="image/' then url=strutil.stripQuotes(string.sub(tok, 6)) end
+tok=toks:next()
+end
+
+if strutil.strlen(url) > 0 then return "https://apod.nasa.gov/apod/" ..  url end
+return ""
+end
+
+
+mod.get_title=function(XML)
+local tag
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type=="b" then return XML:next().data end
+	tag=XML:next()
+	end
+
+return ""
+end
+
+mod.get=function(self, source)
+local S, XML, tag, str, html
+local url=""
+local title=""
+
+S=stream.STREAM("https://apod.nasa.gov/apod/astropix.html","r")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+		if tag.type=="a"
+		then
+		 str=self:anchor_tag(tag.data)
+		 if strutil.strlen(str) > 0
+		 then
+		 url=str
+		 title=self.get_title(XML)
+		 end
+		end
+		tag=XML:next()
+	end
+end
+
+return url, title
+end
+
+
+return mod
+end
+
+
+--get images from chandra observatory webpage
+
+
+function InitChandra()
+local mod={}
+
+mod.image_urls={}
+
+
+mod.get=function(self, source)
+local S, XML, str, html, item
+local resolution="1280x1024"
+local title=""
+
+
+if strutil.strlen(source) > 0 then str="https://chandra.harvard.edu/resources/desktops_" .. string.sub(source, 9) .. ".html"
+else str="https://chandra.harvard.edu/resources/desktops_galaxy.html"
+end
+
+print(str)
+S=stream.STREAM(str, "r")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type=="span" 
+	then
+	 tag=XML:next()
+	 title=tag.data
+	elseif tag.type=="a"
+	then 
+	  str=HtmlTagExtractHRef(tag.data, "")
+		if strutil.strlen(str) > 0 
+		then
+			tag=XML:next()
+			if tag==nil then break end
+			if tag.data == resolution
+			then 
+			item={}
+			item.url=str
+			item.title=title
+			table.insert(self.image_urls, item)
+			end
+		end
+	end
+	tag=XML:next()
+	end
+end
+
+
+item=SelectRandomItem(self.image_urls)
+return "https://chandra.harvard.edu/" .. item.url, item.title
+end
+
+return mod
+end
+
+--get images from ESA Hubble page
+
+
+function InitESAHubble()
+local mod={}
+
+mod.image_urls={}
+
+
+mod.get_image_details=function(self, page) 
+local S, str, html
+local title=""
+local url=""
+local resolution="1600x1200"
+
+
+S=stream.STREAM(page, "")
+html=S:readdoc()
+XML=xml.XML(html)
+tag=XML:next()
+while tag ~= nil
+do
+if tag.type == 'title'
+then
+	tag=XML:next()
+	title=tag.data
+elseif tag.type == 'a'
+then
+	str=HtmlTagExtractHRef(tag.data, "")
+	tag=XML:next()
+	if tag.data==resolution then url=str end
+end
+tag=XML:next()
+end
+S:close()
+
+return url,title
+end
+
+
+mod.get_images_links=function(self, S) 
+local str
+local pages={}
+
+str=S:readln()
+while str ~= nil
+do
+	str=strutil.trim(str)
+	if string.sub(str, 1,  14) == "url: '/images/"
+	then
+		str=string.sub(str, 5, string.len(str)-1)
+		table.insert(pages, str)
+	end
+  str=S:readln()
+end
+
+str=SelectRandomItem(pages)
+return self:get_image_details("https://esahubble.org" .. strutil.stripQuotes(str))
+end
+
+
+mod.get=function(self, source)
+local S, str
+local url=""
+local title=""
+
+if strutil.strlen(source) > 0 
+then
+str="https://esahubble.org/images/archive/category/"..string.sub(source, 11) .. "/page/1/"
+else
+str="https://esahubble.org/images/archive/category/nebulae/page/1/"
+end
+
+print(str)
+S=stream.STREAM(str, "r")
+str=S:readln()
+while str ~= nil
+do
+str=strutil.trim(str)
+if str=="var images = [" then url,title=mod:get_images_links(S) end
+str=S:readln()
+end
+
+return url,title
+end
+
+return mod
+end
+-- module to select a random wallpaper from https://hipwallpaper.com/daily-wallpapers/
+
+
+function InitHipWallpaper()
+local mod={}
+
+mod.image_urls={}
+
+mod.get=function(self, source)
+local S, XML, tag, html
+
+S=stream.STREAM("https://hipwallpaper.com/daily-wallpapers/","r")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+		if tag.type=="a" 
+		then 
+			url=HtmlTagExtractHRef(tag.data, 'class="btn btn-primary"')
+			if strutil.strlen(url) > 0 then table.insert(self.image_urls, url) end
+		end
+		tag=XML:next()
+	end
+end
+
+
+return SelectRandomItem(self.image_urls)
+end
+
+return mod
+end
+
+
+--get images from a local directory
+
+
+function InitLocalFiles()
+local mod={}
+
+mod.files={}
+
+mod.get=function(self, source)
+local item, GLOB
+
+path=string.sub(source, 7)
+GLOB=filesys.GLOB(path.."/*")
+item=GLOB:next()
+while item ~= nil
+do
+	if GLOB:info().type == "file" then table.insert(self.files, item) end
+	item=GLOB:next()
+end
+
+return SelectRandomItem(self.files)
+end
+
+return mod
+end
+-- module for pulling a random wallpaper from https://www.wallpapers13.com/
+
+
+function InitWallpapers13()
+local mod={}
+
+
+mod.image_urls={}
+
+mod.is_image_div=function(self, tag) 
+local toks, tok, url
+local is_image=false
+
+if tag.type ~= 'div' then return false end
+
+toks=strutil.TOKENIZER(tag.data, "\\S", "Q")
+tok=toks:next()
+while tok ~= nil
+do
+if tok == 'class="grid-100 tablet-grid-100 mobile-grid-100 grid-parent px-featuredimg"' then return true end
+tok=toks:next()
+end
+
+return false
+end
+
+
+mod.extract_url=function(self, data)
+local toks, tok
+
+toks=strutil.TOKENIZER(data, "\\S", "Q")
+tok=toks:next()
+while tok ~= nil
+do
+	if string.sub(tok, 1, 5) == 'href='
+	then 
+		return strutil.stripQuotes(string.sub(tok, 6))
+	end
+	tok=toks:next()
+end
+
+return ""
+end
+
+
+mod.find_image=function(self, XML)
+local tag, url
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == "a" 
+	then 
+		url=HtmlTagExtractHRef(tag.data, "") 
+		table.insert(self.image_urls, url)
+		break
+	end
+	if tag.type == "/tag" then break end
+
+	tag=XML:next()
+	end
+
+end
+
+
+
+mod.get_image=function(self, page_url, source)
+local S, XML, tag, url
+--local resolution="1280x1024"
+local resolution="1920x1080"
+
+S=stream.STREAM(page_url, "r")
+if S ~= nil
+then
+	XML=xml.XML(S:readdoc())
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == "title"
+	then
+		title=XML:next().data
+	elseif tag.type == "a" 
+	then 
+		url=self:extract_url(tag.data) 
+		if string.find(url, resolution..".jpg") ~= nil
+		then
+		   break
+		end
+	end
+	if tag.type == "/tag" then break end
+
+	tag=XML:next()
+	end
+end
+
+return url, title
+end
+
+
+mod.get=function(self, source)
+local S, XML, html, tag, url="https://www.wallpapers13.com/category/cities-wallpapers"
+
+if strutil.strlen(source)
+then
+	if string.sub(source, 1, 13) == "wallpapers13:" then url="https://www.wallpapers13.com/category/"..string.sub(source, 14).."/" end
+	if string.sub(source, 1, 5) == "wp13:" then url="https://www.wallpapers13.com/category/"..string.sub(source, 6).."/" end
+end
+
+S=stream.STREAM(url, "r")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+		if self:is_image_div(tag) == true
+		then 
+			self:find_image(XML)
+		end
+		tag=XML:next()
+	end
+end
+
+url=SelectRandomItem(self.image_urls)
+return self:get_image(url, source)
+
+end
+
+return mod
+end
+
+-- module to download a random image from getwallpapers.com
+
+
+function InitGetWallpapers()
+local mod={}
+
+mod.image_urls={}
+
+mod.div_tag=function(self, data) 
+local toks, tok, url
+local is_preload=false
+
+toks=strutil.TOKENIZER(data, "\\S")
+tok=toks:next()
+while tok ~= nil
+do
+if string.sub(tok, 1, 13) == 'data-fullimg=' then url=strutil.stripQuotes(string.sub(tok, 14)) end
+tok=toks:next()
+end
+
+if strutil.strlen(url) > 0 then table.insert(self.image_urls, "https://getwallpapers.com" ..  url) end
+end
+
+
+mod.get=function(self, source)
+local S, XML, tag, html, url="https://getwallpapers.com/collection/nature-desktop-wallpapers-backgrounds"
+
+if strutil.strlen(source) > 0
+then
+if string.sub(source, 1, 14)=="getwallpapers:" then url="https://getwallpapers.com/collection/"..string.sub(source, 15) end
+end
+
+S=stream.STREAM(url,"r")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+		if tag.type=="div" then self:div_tag(tag.data) end
+		tag=XML:next()
+	end
+end
+
+return SelectRandomItem(self.image_urls)
+end
+
+
+return mod
+end
+
+
+function InitSUWalls()
+local mod={}
+
+mod.pages={}
+
+
+mod.is_image_page=function(self, str, category)
+local path
+
+if strutil.strlen(str) < 1 then return false end
+
+path="/" .. category .. "/" 
+if string.sub(str, 1, strutil.strlen(path) ) == path
+then 
+	path=path.."page/"
+	if string.sub(str, 1, strutil.strlen(path) ) == path then return false end
+	return true
+end
+
+return false
+end
+
+
+mod.get_image=function(self, page)
+local S, html, XML, tag 
+local url=""
+local title=""
+
+S=stream.STREAM("https://suwalls.com" .. page, "")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == "title"
+	then
+	title=XML:next().value
+	elseif tag.type == "a"
+	then
+		str=HtmlTagExtractHRef(tag.data, 'class="dlink"') 
+		if strutil.strlen(str) > 0 then url=str end
+	end
+	tag=XML:next()
+	end
+end
+
+return url, title
+end
+
+
+mod.get=function(self, source)
+local S, html, str, XML, category
+
+category=string.sub(source, 9)
+S=stream.STREAM("https://suwalls.com/" .. category, "")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == "a"
+	then
+		str=HtmlTagExtractHRef(tag.data,"")
+		if str ~= nil
+		then
+		if self:is_image_page(str, category) then table.insert(self.pages, str) end
+		end
+	end
+	tag=XML:next()
+	end
+end
+
+str=SelectRandomItem(self.pages)
+return self:get_image(str)
+end
+
+return mod
+end
+-- pull images from wikimedia
+
+
+function InitWikimedia()
+local mod={}
+
+mod.pages={}
+
+mod.get_image=function(self, page)
+local S, html, XML, str, tag
+local url=""
+
+print("PAGE: "..page)
+S=stream.STREAM("https://commons.wikimedia.org/"..page)
+if S ~= nil
+then
+	html=S:readdoc()
+	S:close()
+
+	XML=xml.XML(html)
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == 'a'
+	then
+		str=HtmlTagExtractHRef(tag.data, '')
+		tag=XML:next()
+		if tag.data == "Original file" then url=str 
+		print("URL?: "..url)
+		end
+	end
+	tag=XML:next()
+	end
+end
+
+return url
+end
+
+mod.get_page=function(self, page)
+local S, html, XML, str, tag
+local next_page=""
+
+S=stream.STREAM("https://commons.wikimedia.org"..page)
+print("get page: "..page)
+if S ~= nil
+then
+	html=S:readdoc()
+	S:close()
+
+	XML=xml.XML(html)
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == 'a'
+	then
+		url=HtmlTagExtractHRef(tag.data, 'class="galleryfilename galleryfilename-truncate"')
+		if strutil.strlen(url) > 0 then table.insert(mod.pages, url) 
+		else
+		url=HtmlTagExtractHRef(tag.data, '')
+		tag=XML:next()
+		if tag.data=="next page" then next_page=url end
+		end
+	end
+	tag=XML:next()
+	end
+end
+
+return next_page
+end
+
+
+mod.get=function(self, source)
+local next_page
+
+next_page=mod.get_page(source, "/wiki/Category:Commons_featured_desktop_backgrounds")
+while strutil.strlen(next_page) > 0
+do
+next_page=mod.get_page(source, next_page)
+end
+
+return self:get_image(SelectRandomItem(mod.pages))
+end
+
+
+
+return mod
+end
+
+
+function SetRoot(image_path)
+
+local programs={"feh --no-fehbg --bg-center --bg-fill", "display -window root", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
+
+for i,item in ipairs(programs)
+do
+	toks=strutil.TOKENIZER(item, "\\S")
+	str=toks:next()
+	path=filesys.find(str, process.getenv("PATH"))
+	if strutil.strlen(path) > 0
+	then
+	cmd=path.." "..toks:remaining() .. " " .. image_path
+	print(cmd)
+	os.execute(cmd)
+	break
+	end
+end
+
+--if the user has 'gesettings' installed, then assume they have a gnome desktop and set that too
+path=filesys.find("gsettings", process.getenv("PATH"))
+if strutil.strlen(path) > 0 then os.execute("gsettings set org.gnome.desktop.background picture-uri file://" .. image_path) end
+
+
+end
+
+function GetWallpaper(url, source, title, description) 
+local S, fname
+local result=false
+
+print("GET: "..url)
+
+fname=working_dir.."/current-wallpaper.jpg"
+filesys.mkdirPath(fname)
+
+S=stream.STREAM(url, "r")
+if S ~= nil
+then
+	if S:copy(fname) > 0 then result=true end
+	S:close()
+end
+
+if strutil.strlen(process.getenv("DISPLAY"))==0 then process.setenv("DISPLAY", ":0") end
+SetRoot(fname)
+
+S=stream.STREAM(working_dir.."wallpapers.log", "a")
+if S ~= nil
+then
+	str=url.." source='"..source.."'"
+	if strutil.strlen(title) > 0 then str=str.." title='"..title.."'" end
+	str=str.."\n"
+	S:writeln(str)
+	S:close()
+end
+
+S=stream.STREAM(working_dir.."wallpapers.curr", "w")
+if S ~= nil
+then
+	S:writeln("url: "..url.."\n")
+	S:writeln("source: "..source.."\n")
+	if strutil.strlen(title) > 0 then S:writeln("title: "..title.."\n") end
+	if strutil.strlen(description) > 0 then S:writeln("description: "..description.."\n") end
+	S:close()
+end
+
+
+return result
+end
+
+
+
+function GetWallpaperFromSite(source)
+local url, title, description
+local result=false
+
+mod=sources:select(source)
+
+print(source)
+if mod ~= nil
+then 
+url,title,description=mod:get(source) 
+if strutil.strlen(url) > 0 then result=GetWallpaper(url, source, title, description) end
+end
+
+return result
+end
+
+
+function ParseSources(src_list) 
+local toks, tok
+local sources={}
+
+toks=strutil.TOKENIZER(src_list, ",")
+tok=toks:next()
+while tok ~= nil
+do
+table.insert(sources, tok)
+tok=toks:next()
+end
+
+return sources
+end
+
+
+function WallpaperFromRandomSource(source_list)
+local i, item
+
+for i=1,5,1
+do
+item=sources:random(source_list)
+if GetWallpaperFromSite(item) == true then break end
+end
+
+end
+
+
+function ParseCommandLine()
+local i, str
+local act="random"
+
+for i,str in ipairs(arg)
+do
+	if str=="-sources" then source_list=sources:parse(arg[i+1])  ; arg[i+1]=""
+	elseif str=="-info" then act="info" 
+	elseif str=="-title" then act="title" 
+	elseif str=="-list" then act="list" 
+	elseif str=="-disable" then act="disable:" .. arg[i+1] ; arg[i+1]=""
+	elseif str=="-enable" then act="enable:" .. arg[i+1] ; arg[i+1]=""
+	end
+end
+
+return act
+end
+
+
+math.randomseed(os.time()+process.getpid())
+working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
+process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
+sources=InitSources()
+
+act=ParseCommandLine()
+
+
+if act=="random" then WallpaperFromRandomSource(source_list)
+elseif act=="info" then ShowCurrWallpaperDetails()
+elseif act=="title" then ShowCurrWallpaperTitle()
+elseif act=="list" then sources:list()
+elseif string.sub(act, 1, 8) == "disable:" then sources:disable(string.sub(act, 9))
+elseif string.sub(act, 1, 7) == "enable:" then sources:enable(string.sub(act, 8))
+end
+
