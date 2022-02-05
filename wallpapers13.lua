@@ -43,6 +43,25 @@ return ""
 end
 
 
+mod.extract_resolution=function(self, url)
+local toks, item, next_item, pos
+
+toks=strutil.TOKENIZER(url, "-")
+item=toks:next()
+while item ~= nil
+do
+next_item=toks:next()
+if strutil.strlen(next_item)==0 then break end
+item=next_item
+end
+
+if item==nil then return "" end
+pos=string.find(item, '%.')
+if pos < 4 then return "" end
+return string.sub(item, 1,  pos-1)
+end
+
+
 mod.find_image=function(self, XML)
 local tag, url
 
@@ -65,9 +84,7 @@ end
 
 
 mod.get_image=function(self, page_url, source)
-local S, XML, tag, url
---local resolution="1280x1024"
-local resolution="1920x1080"
+local S, XML, tag, url, str, res, selected_res
 
 S=stream.STREAM(page_url, "r")
 if S ~= nil
@@ -83,10 +100,11 @@ then
 		title=XML:next().data
 	elseif tag.type == "a" 
 	then 
-		url=self:extract_url(tag.data) 
-		if string.find(url, resolution..".jpg") ~= nil
+		str=self:extract_url(tag.data) 
+		if string.find(str, ".jpg") ~= nil
 		then
-		   break
+				res=self:extract_resolution(str)
+				if resolution:select(res) == true then url=str; selected_res=res end
 		end
 	end
 	if tag.type == "/tag" then break end
@@ -94,6 +112,8 @@ then
 	tag=XML:next()
 	end
 end
+
+print("selected resolution: "..selected_res.." url: "..url)
 
 return url, title
 end

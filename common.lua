@@ -7,28 +7,56 @@ require("filesys")
 
 
 function SelectRandomItem(choices)
-local val
+local val, i
 
 if #choices < 1 then return nil end
 
+for i=1,10,1
+do
 val=math.random(#choices)
-return choices[val]
+if blocklist:check(choices[val]) == false then return choices[val] end
+end
+
+return nil
 end
 
 
-
-function ShowCurrWallpaperDetails()
-local dir,S
+function GetCurrWallpaperDetails()
+local dir, S, str, toks
+local details={}
 
 dir=process.getenv("HOME").."/.local/share/wallpaper/"
 S=stream.STREAM(dir.."wallpapers.curr", "r")
 if S ~= nil
 then
-	print(S:readdoc())
-	S:close()
+str=S:readln()
+while str ~= nil
+do
+	str=strutil.trim(str)
+	if strutil.strlen(str) > 0
+	then
+	toks=strutil.TOKENIZER(str, ":")
+	details[toks:next()]=strutil.trim(toks:remaining())
+	end
+	str=S:readln()
+end
+S:close()
+end
+
+return details
+end
+
+
+function ShowCurrWallpaperDetails()
+local key, val
+
+for key,val in pairs(GetCurrWallpaperDetails())
+do
+print(key..": "..val)
 end
 
 end
+
 
 function ShowCurrWallpaperTitle()
 local dir,S,str

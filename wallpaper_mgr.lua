@@ -7,28 +7,56 @@ require("filesys")
 
 
 function SelectRandomItem(choices)
-local val
+local val, i
 
 if #choices < 1 then return nil end
 
+for i=1,10,1
+do
 val=math.random(#choices)
-return choices[val]
+if blocklist:check(choices[val]) == false then return choices[val] end
+end
+
+return nil
 end
 
 
-
-function ShowCurrWallpaperDetails()
-local dir,S
+function GetCurrWallpaperDetails()
+local dir, S, str, toks
+local details={}
 
 dir=process.getenv("HOME").."/.local/share/wallpaper/"
 S=stream.STREAM(dir.."wallpapers.curr", "r")
 if S ~= nil
 then
-	print(S:readdoc())
-	S:close()
+str=S:readln()
+while str ~= nil
+do
+	str=strutil.trim(str)
+	if strutil.strlen(str) > 0
+	then
+	toks=strutil.TOKENIZER(str, ":")
+	details[toks:next()]=strutil.trim(toks:remaining())
+	end
+	str=S:readln()
+end
+S:close()
+end
+
+return details
+end
+
+
+function ShowCurrWallpaperDetails()
+local key, val
+
+for key,val in pairs(GetCurrWallpaperDetails())
+do
+print(key..": "..val)
 end
 
 end
+
 
 function ShowCurrWallpaperTitle()
 local dir,S,str
@@ -55,13 +83,64 @@ end
 end
 
 
+function InitBlocklist()
+local mod={}
+
+mod.items={}
+
+mod.add=function(self, url)
+local S, str
+
+S=stream.STREAM(settings.working_dir.."/blocked.lst", "a")
+if S ~= nil
+then
+S:writeln(url.."\n")
+S:close()
+end
+
+end
+
+mod.load=function(self)
+local S, str
+
+S=stream.STREAM(settings.working_dir.."/blocked.lst", "r")
+if S ~= nil
+then
+	str=S:readln()
+	while str ~= nil
+	do
+	str=strutil.trim(str)
+	table.insert(self.items, str)
+	str=S:readln()
+	end
+	S:close()
+end
+
+end
+
+mod.check=function(self, url)
+local i, item
+
+for i,item in ipairs(self.items)
+do
+if item==url then return true end
+end
+
+return false
+end
+
+mod:load()
+return mod
+end
+
+
 --"chandra:dwarf", "chandra:snr", "chandra:quasars", "chandra:nstars",  "chandra:clusters", "chandra:bh"}
 
 
 function InitSources()
 local mod={}
 
-mod.default_sources={"bing:zh-CN", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters"}
+mod.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters"}
 
 
 
@@ -86,7 +165,7 @@ mod.load=function(self, include_disabled)
 local S, str
 local sources={}
 
-S=stream.STREAM(working_dir .. "/sources.lst", "r")
+S=stream.STREAM(settings.working_dir .. "/sources.lst", "r")
 if S == nil then return nil end
 
 str=S:readln()
@@ -106,14 +185,13 @@ end
 mod.save=function(self, sources)
 local S, str,i
 
-filesys.mkdirPath(working_dir.."/")
-S=stream.STREAM(working_dir .. "/sources.lst", "w")
-print("SAVE:"..working_dir.." "..tostring(S))
+filesys.mkdirPath(settings.working_dir.."/")
+S=stream.STREAM(settings.working_dir .. "/sources.lst", "w")
 if S == nil then return nil end
 
 for i, str in ipairs(sources)
 do
-	S:writeln(str.."\n")
+  if strutil.strlen(str) > 0 then S:writeln(str.."\n") end
 end
 S:close()
 
@@ -133,6 +211,7 @@ elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
 elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
+elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
 end
 
 return obj
@@ -185,6 +264,31 @@ return choice
 end
 
 
+
+mod.add=function(self, target)
+local sources
+
+sources=self:load(true)
+table.insert(sources, target)
+self:save(sources)
+
+end
+
+
+mod.remove=function(self, target)
+local sources
+
+sources=self:load(true)
+for i,item in ipairs(sources)
+do
+	if item==target then sources[i]="" end
+end
+self:save(sources)
+
+end
+
+
+
 mod.sources=mod:load()
 if mod.sources == nil
 then
@@ -222,6 +326,41 @@ end
 if is_target == true then return url end
 return("")
 end
+
+
+
+-- module to get daily wallpaper from bing.com
+
+
+function InitPlaylist()
+local mod={}
+
+
+mod.get=function(self, source)
+local S, str
+local items={}
+
+
+if strutil.strlen(source) < 0 then return nil end
+S=stream.STREAM(string.sub(source, 10), "r")
+if S ~= nil
+then
+	str=S:readln()
+	while str ~= nil
+	do
+	str=strutil.trim(str)
+	if strutil.strlen(str) > 0 then table.insert(items, str) end
+	str=S:readln()
+	end
+	S:close()
+end
+
+return SelectRandomItem(items)
+end
+
+return mod
+end
+
 
 
 
@@ -359,17 +498,41 @@ local mod={}
 mod.image_urls={}
 
 
+
+
+mod.select=function(self, items)
+local i, item, best_res
+local selected_items={}
+
+for i,item in ipairs(items)
+do
+if resolution:select(item.resolution) == true then best_res=item.resolution end
+end
+
+
+for i,item in ipairs(items)
+do 
+if item.resolution == best_res then table.insert(selected_items, item) end 
+end
+
+item=SelectRandomItem(selected_items)
+print("selected resolution: "..best_res.." url:"..item.url)
+
+return item
+end
+
+
+
 mod.get=function(self, source)
 local S, XML, str, html, item
-local resolution="1280x1024"
 local title=""
+local images={}
 
 
 if strutil.strlen(source) > 0 then str="https://chandra.harvard.edu/resources/desktops_" .. string.sub(source, 9) .. ".html"
 else str="https://chandra.harvard.edu/resources/desktops_galaxy.html"
 end
 
-print(str)
 S=stream.STREAM(str, "r")
 if S ~= nil
 then
@@ -391,12 +554,14 @@ then
 		then
 			tag=XML:next()
 			if tag==nil then break end
-			if tag.data == resolution
-			then 
+
+			if string.find(tag.data, ' ') == nil and string.find(tag.data, 'x') ~= nil
+			then
 			item={}
 			item.url=str
 			item.title=title
-			table.insert(self.image_urls, item)
+			item.resolution=tag.data
+			table.insert(images, item)
 			end
 		end
 	end
@@ -405,7 +570,8 @@ then
 end
 
 
-item=SelectRandomItem(self.image_urls)
+item=self:select(images)
+if item==nil then return nil end
 return "https://chandra.harvard.edu/" .. item.url, item.title
 end
 
@@ -422,10 +588,9 @@ mod.image_urls={}
 
 
 mod.get_image_details=function(self, page) 
-local S, str, html
+local S, str, html, best_res
 local title=""
 local url=""
-local resolution="1600x1200"
 
 
 S=stream.STREAM(page, "")
@@ -442,13 +607,14 @@ elseif tag.type == 'a'
 then
 	str=HtmlTagExtractHRef(tag.data, "")
 	tag=XML:next()
-	if tag.data==resolution then url=str end
+	if resolution:select(tag.data) == true then url=str; best_res=tag.data end
 end
 tag=XML:next()
 end
 S:close()
 
-return url,title
+print("selected resolution: "..best_res.." url: "..url)
+return url, title
 end
 
 
@@ -608,6 +774,25 @@ return ""
 end
 
 
+mod.extract_resolution=function(self, url)
+local toks, item, next_item, pos
+
+toks=strutil.TOKENIZER(url, "-")
+item=toks:next()
+while item ~= nil
+do
+next_item=toks:next()
+if strutil.strlen(next_item)==0 then break end
+item=next_item
+end
+
+if item==nil then return "" end
+pos=string.find(item, '%.')
+if pos < 4 then return "" end
+return string.sub(item, 1,  pos-1)
+end
+
+
 mod.find_image=function(self, XML)
 local tag, url
 
@@ -630,9 +815,7 @@ end
 
 
 mod.get_image=function(self, page_url, source)
-local S, XML, tag, url
---local resolution="1280x1024"
-local resolution="1920x1080"
+local S, XML, tag, url, str, res, selected_res
 
 S=stream.STREAM(page_url, "r")
 if S ~= nil
@@ -648,10 +831,11 @@ then
 		title=XML:next().data
 	elseif tag.type == "a" 
 	then 
-		url=self:extract_url(tag.data) 
-		if string.find(url, resolution..".jpg") ~= nil
+		str=self:extract_url(tag.data) 
+		if string.find(str, ".jpg") ~= nil
 		then
-		   break
+				res=self:extract_resolution(str)
+				if resolution:select(res) == true then url=str; selected_res=res end
 		end
 	end
 	if tag.type == "/tag" then break end
@@ -659,6 +843,8 @@ then
 	tag=XML:next()
 	end
 end
+
+print("selected resolution: "..selected_res.." url: "..url)
 
 return url, title
 end
@@ -933,6 +1119,11 @@ function SetRoot(image_path)
 
 local programs={"feh --no-fehbg --bg-center --bg-fill", "display -window root", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
 
+if strutil.strlen(settings.setroot) > 0
+then
+	cmd=settings.setroot .. " " .. image_path
+else
+
 for i,item in ipairs(programs)
 do
 	toks=strutil.TOKENIZER(item, "\\S")
@@ -941,8 +1132,6 @@ do
 	if strutil.strlen(path) > 0
 	then
 	cmd=path.." "..toks:remaining() .. " " .. image_path
-	print(cmd)
-	os.execute(cmd)
 	break
 	end
 end
@@ -951,6 +1140,15 @@ end
 path=filesys.find("gsettings", process.getenv("PATH"))
 if strutil.strlen(path) > 0 then os.execute("gsettings set org.gnome.desktop.background picture-uri file://" .. image_path) end
 
+end
+
+if strutil.strlen(cmd) > 0
+then
+	print(cmd)
+	os.execute(cmd)
+else
+	print("ERROR: no 'setroot' program found")
+end
 
 end
 
@@ -960,7 +1158,7 @@ local result=false
 
 print("GET: "..url)
 
-fname=working_dir.."/current-wallpaper.jpg"
+fname=settings.working_dir.."/current-wallpaper.jpg"
 filesys.mkdirPath(fname)
 
 S=stream.STREAM(url, "r")
@@ -973,7 +1171,7 @@ end
 if strutil.strlen(process.getenv("DISPLAY"))==0 then process.setenv("DISPLAY", ":0") end
 SetRoot(fname)
 
-S=stream.STREAM(working_dir.."wallpapers.log", "a")
+S=stream.STREAM(settings.working_dir.."wallpapers.log", "a")
 if S ~= nil
 then
 	str=url.." source='"..source.."'"
@@ -983,7 +1181,7 @@ then
 	S:close()
 end
 
-S=stream.STREAM(working_dir.."wallpapers.curr", "w")
+S=stream.STREAM(settings.working_dir.."wallpapers.curr", "w")
 if S ~= nil
 then
 	S:writeln("url: "..url.."\n")
@@ -999,6 +1197,132 @@ end
 
 
 
+function InitResolution()
+local mod={}
+
+mod.best_resolution=""
+
+
+
+mod.xrandr_resolution=function(self)
+local S, str, toks
+local resolution=""
+
+S=stream.STREAM("cmd:xrandr", "");
+if S ~= nil
+then
+  str=S:readln()
+  toks=strutil.TOKENIZER(str, ",")
+  str=toks:next()
+  while str ~= nil
+  do
+  str=strutil.trim(str)
+  if string.sub(str, 1, 8) == "current "
+  then
+  str=string.sub(str, 9)
+  resolution=string.gsub(str, ' ', '')
+  end
+  
+  str=toks:next()
+  end
+  S:close()
+end
+
+return resolution
+end
+
+
+
+mod.xprop_resolution=function(self)
+local S, str, toks
+local resolution=""
+
+if strutil.strlen(resolution) ==0
+then
+S=stream.STREAM("cmd:xprop -root", "");
+if S ~= nil
+then
+str=S:readln()
+while str ~= nil
+do
+	str=strutil.trim(str)
+	if string.sub(str, 1, 33) == "_NET_DESKTOP_GEOMETRY(CARDINAL) ="
+	then
+	str=string.sub(str, 34)
+	resolution=string.gsub(str, ' ', '')
+	resolution=string.gsub(resolution, ',', 'x')
+	end
+str=S:readln()
+end
+S:close()
+end
+
+end
+
+return resolution
+end
+
+
+
+mod.get=function(self)
+local S, str, resolution
+
+if strutil.strlen(settings.resolution) > 0 then return settings.resolution end
+resolution=self:xrandr_resolution()
+if strutil.strlen(resolution) then resolution=self:xprop_resolution() end
+
+return resolution
+end
+
+
+mod.calc_diff=function(self, target, new)
+local xdiff, ydiff, target_toks, new_toks
+local val1, val2
+
+	target_toks=strutil.TOKENIZER(target, "x")
+	new_toks=strutil.TOKENIZER(new, "x")
+	val=tonumber(new_toks:next())
+	if val == nil then return nil end
+	xdiff=tonumber(target_toks:next()) - val
+	val=tonumber(new_toks:next())
+	if val == nil then return nil end
+	ydiff=tonumber(target_toks:next()) - val
+	if xdiff < 0 then xdiff=0 - xdiff end
+	if ydiff < 0 then ydiff=0 - ydiff end
+
+return (xdiff+ydiff)
+end
+
+
+mod.select=function(self, res)
+local better=false
+local new_diff, best_diff
+
+if res==nil then return false end
+if string.find(res, 'x') == nil then return false end
+
+if mod.best_resolution==""
+then
+	better=true
+else
+	new_diff=self:calc_diff(settings.resolution, res) 
+	best_diff=self:calc_diff(settings.resolution, mod.best_resolution)
+	if new_diff == nil then better=false
+	elseif best_diff == nil then better=true
+	elseif new_diff < best_diff then better=true
+	end
+end
+
+if better==true then mod.best_resolution=res end
+
+return better
+end
+
+return mod
+end
+
+
+
 function GetWallpaperFromSite(source)
 local url, title, description
 local result=false
@@ -1009,7 +1333,14 @@ print(source)
 if mod ~= nil
 then 
 url,title,description=mod:get(source) 
-if strutil.strlen(url) > 0 then result=GetWallpaper(url, source, title, description) end
+if strutil.strlen(url) > 0 
+then
+
+if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description) 
+else print("BLOCKED: " .. url .. ". Never use this image.")
+end
+
+end
 end
 
 return result
@@ -1044,8 +1375,39 @@ end
 end
 
 
+
+function PrintHelp()
+
+print("")
+print("wallpaper_mgr.lua [options]")
+print("options:")
+print("  -sources <comma separated list of sources>       list of sources to get images from, overriding the default list.")
+print("  -list                                            list default sources.")
+print("  -add <source>                                    add a source to the list of default sources.")
+print("  -del <source>                                    remove an item from the list of default sources.")
+print("  -rm <source>                                     remove an item from the list of default sources.")
+print("  -remove <source>                                 remove an item from the list of default sources.")
+print("  -disable <source>                                disable a source in the list of default sources.")
+print("  -enable <source>                                 enable a source in the list of default sources.")
+print("  -block <image url>                               block an image url so this image can never be used.")
+print("  -block-curr                                      block the current image so it is never used.")
+print("  -info                                            info on current image.")
+print("  -title                                           title of current image (or URL if no title).")
+print("  -setroot <program name>                          use specified program to set background.")
+print("  -resolution <resolution>                         get images matching <resolution>")
+print("  -res <resolution>                                get images matching <resolution>")
+print("  -?                                               this help")
+print("  -help                                            this help")
+print("  --help                                           this help")
+print("")
+print("wallpaper_mgr.lua uses xrandr or 'xprop -root' to discover the size of the desktop, and downloads images close to that on sites that support multiple resolutions. If xrandr and xprop aren't available, and the user doesn't supply a resolution on the command line, then it defaults to 1920x1200.")
+print("")
+print("wallpaper_mgr.lua has a default list of sources consisting of 'bing:en-US, bing:en-GB, nasa:apod, wallpapers13:cities-wallpapers, wallpapers13:nature-wallpapers/beach-wallpapers, wallpapers13:nature-wallpapers/waterfalls-wallpapers, wallpapers13:nature-wallpapers/flowers-wallpapers, wallpapers13:nature-wallpapers/sunset-wallpapers, wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers, wallpapers13:nature-wallpapers/landscapes-wallpapers, getwallpapers:ocean-scene-wallpaper, getwallpapers:nature-desktop-wallpapers-backgrounds, getwallpapers:milky-way-wallpaper-1920x1080, getwallpapers:1920x1080-hd-autumn-wallpapers, hipwallpapers:daily, suwalls:flowers, suwalls:beaches, suwalls:abstract, suwalls:nature, suwalls:space, chandra:stars, chandra:galaxy, esahubble:nebulae, esahubble:galaxies, esahubble:stars, esahubble:starclusters'. This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'catagory' pages on each site.")
+end
+
+
 function ParseCommandLine()
-local i, str
+local i, str, details
 local act="random"
 
 for i,str in ipairs(arg)
@@ -1054,8 +1416,20 @@ do
 	elseif str=="-info" then act="info" 
 	elseif str=="-title" then act="title" 
 	elseif str=="-list" then act="list" 
+	elseif str=="-add" then act="add:" .. arg[i+1] ; arg[i+1]=""
+	elseif str=="-del" then act="remove:" .. arg[i+1] ; arg[i+1]=""
+	elseif str=="-rm" then act="remove:" .. arg[i+1] ; arg[i+1]=""
+	elseif str=="-remove" then act="remove:" .. arg[i+1] ; arg[i+1]=""
 	elseif str=="-disable" then act="disable:" .. arg[i+1] ; arg[i+1]=""
 	elseif str=="-enable" then act="enable:" .. arg[i+1] ; arg[i+1]=""
+	elseif str=="-block" then act="block:" .. arg[i+1] ; arg[i+1]=""
+	elseif str=="-block-curr" then details=GetCurrWallpaperDetails(); act="block:" .. details.url
+	elseif str=="-setroot" then settings.setroot=arg[i+1]; arg[i+1]=""
+	elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
+	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
+	elseif str=="-?" then act="help" 
+	elseif str=="-help" then act="help"
+	elseif str=="--help" then act="help"
 	end
 end
 
@@ -1063,19 +1437,34 @@ return act
 end
 
 
+-- seed random number generator so it doesn't produce the same
+-- pattern of values!
 math.randomseed(os.time()+process.getpid())
-working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
-process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
+
+
+settings={}
+settings.working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
+
 sources=InitSources()
+blocklist=InitBlocklist()
+resolution=InitResolution()
+
+settings.resolution=resolution:get()
+process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
+
 
 act=ParseCommandLine()
 
 
-if act=="random" then WallpaperFromRandomSource(source_list)
+if act=="help" then PrintHelp()
+elseif act=="random" then WallpaperFromRandomSource(source_list)
 elseif act=="info" then ShowCurrWallpaperDetails()
 elseif act=="title" then ShowCurrWallpaperTitle()
 elseif act=="list" then sources:list()
 elseif string.sub(act, 1, 8) == "disable:" then sources:disable(string.sub(act, 9))
 elseif string.sub(act, 1, 7) == "enable:" then sources:enable(string.sub(act, 8))
+elseif string.sub(act, 1, 4) == "add:" then sources:add(string.sub(act, 5))
+elseif string.sub(act, 1, 7) == "remove:" then sources:remove(string.sub(act, 8))
+elseif string.sub(act, 1, 6) == "block:" then blocklist:add(string.sub(act, 7))
 end
 

@@ -6,7 +6,7 @@
 function InitSources()
 local mod={}
 
-mod.default_sources={"bing:zh-CN", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters"}
+mod.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters"}
 
 
 
@@ -31,7 +31,7 @@ mod.load=function(self, include_disabled)
 local S, str
 local sources={}
 
-S=stream.STREAM(working_dir .. "/sources.lst", "r")
+S=stream.STREAM(settings.working_dir .. "/sources.lst", "r")
 if S == nil then return nil end
 
 str=S:readln()
@@ -51,14 +51,13 @@ end
 mod.save=function(self, sources)
 local S, str,i
 
-filesys.mkdirPath(working_dir.."/")
-S=stream.STREAM(working_dir .. "/sources.lst", "w")
-print("SAVE:"..working_dir.." "..tostring(S))
+filesys.mkdirPath(settings.working_dir.."/")
+S=stream.STREAM(settings.working_dir .. "/sources.lst", "w")
 if S == nil then return nil end
 
 for i, str in ipairs(sources)
 do
-	S:writeln(str.."\n")
+  if strutil.strlen(str) > 0 then S:writeln(str.."\n") end
 end
 S:close()
 
@@ -78,6 +77,7 @@ elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
 elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
+elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
 end
 
 return obj
@@ -128,6 +128,31 @@ end
 
 return choice
 end
+
+
+
+mod.add=function(self, target)
+local sources
+
+sources=self:load(true)
+table.insert(sources, target)
+self:save(sources)
+
+end
+
+
+mod.remove=function(self, target)
+local sources
+
+sources=self:load(true)
+for i,item in ipairs(sources)
+do
+	if item==target then sources[i]="" end
+end
+self:save(sources)
+
+end
+
 
 
 mod.sources=mod:load()

@@ -9,10 +9,9 @@ mod.image_urls={}
 
 
 mod.get_image_details=function(self, page) 
-local S, str, html
+local S, str, html, best_res
 local title=""
 local url=""
-local resolution="1600x1200"
 
 
 S=stream.STREAM(page, "")
@@ -29,13 +28,14 @@ elseif tag.type == 'a'
 then
 	str=HtmlTagExtractHRef(tag.data, "")
 	tag=XML:next()
-	if tag.data==resolution then url=str end
+	if resolution:select(tag.data) == true then url=str; best_res=tag.data end
 end
 tag=XML:next()
 end
 S:close()
 
-return url,title
+print("selected resolution: "..best_res.." url: "..url)
+return url, title
 end
 
 

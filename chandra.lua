@@ -8,17 +8,41 @@ local mod={}
 mod.image_urls={}
 
 
+
+
+mod.select=function(self, items)
+local i, item, best_res
+local selected_items={}
+
+for i,item in ipairs(items)
+do
+if resolution:select(item.resolution) == true then best_res=item.resolution end
+end
+
+
+for i,item in ipairs(items)
+do 
+if item.resolution == best_res then table.insert(selected_items, item) end 
+end
+
+item=SelectRandomItem(selected_items)
+print("selected resolution: "..best_res.." url:"..item.url)
+
+return item
+end
+
+
+
 mod.get=function(self, source)
 local S, XML, str, html, item
-local resolution="1280x1024"
 local title=""
+local images={}
 
 
 if strutil.strlen(source) > 0 then str="https://chandra.harvard.edu/resources/desktops_" .. string.sub(source, 9) .. ".html"
 else str="https://chandra.harvard.edu/resources/desktops_galaxy.html"
 end
 
-print(str)
 S=stream.STREAM(str, "r")
 if S ~= nil
 then
@@ -40,12 +64,14 @@ then
 		then
 			tag=XML:next()
 			if tag==nil then break end
-			if tag.data == resolution
-			then 
+
+			if string.find(tag.data, ' ') == nil and string.find(tag.data, 'x') ~= nil
+			then
 			item={}
 			item.url=str
 			item.title=title
-			table.insert(self.image_urls, item)
+			item.resolution=tag.data
+			table.insert(images, item)
 			end
 		end
 	end
@@ -54,7 +80,8 @@ then
 end
 
 
-item=SelectRandomItem(self.image_urls)
+item=self:select(images)
+if item==nil then return nil end
 return "https://chandra.harvard.edu/" .. item.url, item.title
 end
 

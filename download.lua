@@ -4,7 +4,7 @@ local result=false
 
 print("GET: "..url)
 
-fname=working_dir.."/current-wallpaper.jpg"
+fname=settings.working_dir.."/current-wallpaper.jpg"
 filesys.mkdirPath(fname)
 
 S=stream.STREAM(url, "r")
@@ -17,7 +17,7 @@ end
 if strutil.strlen(process.getenv("DISPLAY"))==0 then process.setenv("DISPLAY", ":0") end
 SetRoot(fname)
 
-S=stream.STREAM(working_dir.."wallpapers.log", "a")
+S=stream.STREAM(settings.working_dir.."wallpapers.log", "a")
 if S ~= nil
 then
 	str=url.." source='"..source.."'"
@@ -27,7 +27,7 @@ then
 	S:close()
 end
 
-S=stream.STREAM(working_dir.."wallpapers.curr", "w")
+S=stream.STREAM(settings.working_dir.."wallpapers.curr", "w")
 if S ~= nil
 then
 	S:writeln("url: "..url.."\n")
