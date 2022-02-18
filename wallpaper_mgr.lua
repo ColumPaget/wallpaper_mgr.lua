@@ -3,7 +3,7 @@ require("strutil")
 require("xml")
 require("process")
 require("filesys")
-
+require("hash")
 
 
 function SelectRandomItem(choices)
@@ -140,7 +140,8 @@ end
 function InitSources()
 local mod={}
 
-mod.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters"}
+mod.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes"
+}
 
 
 
@@ -211,6 +212,7 @@ elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
 elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
+elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(settings.working_dir.."/faves/")
 elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
 end
 
@@ -707,15 +709,17 @@ end
 --get images from a local directory
 
 
-function InitLocalFiles()
+function InitLocalFiles(root_dir)
 local mod={}
 
+mod.root_dir=""
+if strutil.strlen(root_dir) > 0 then mod.root_dir=root_dir.."/" end
 mod.files={}
 
 mod.get=function(self, source)
 local item, GLOB
 
-path=string.sub(source, 7)
+path=mod.root_dir..string.sub(source, 7)
 GLOB=filesys.GLOB(path.."/*")
 item=GLOB:next()
 while item ~= nil
@@ -725,6 +729,17 @@ do
 end
 
 return SelectRandomItem(self.files)
+end
+
+mod.add_image=function(self, url, source)
+local path, str
+
+path=string.sub(source, 7).."/"
+filesys.mkdirPath(path)
+print("mkdir: " .. path)
+str=hash.hashstr(url, "md5", "p64") .. "-" .. filesys.basename(url)
+print("fave:" .. path..str)
+filesys.copy(url, path..str)
 end
 
 return mod
@@ -1038,7 +1053,8 @@ mod.get_image=function(self, page)
 local S, html, XML, str, tag
 local url=""
 
-print("PAGE: "..page)
+if strutil.strlen(page) > 0
+then
 S=stream.STREAM("https://commons.wikimedia.org/"..page)
 if S ~= nil
 then
@@ -1054,11 +1070,11 @@ then
 		str=HtmlTagExtractHRef(tag.data, '')
 		tag=XML:next()
 		if tag.data == "Original file" then url=str 
-		print("URL?: "..url)
 		end
 	end
 	tag=XML:next()
 	end
+end
 end
 
 return url
@@ -1068,8 +1084,8 @@ mod.get_page=function(self, page)
 local S, html, XML, str, tag
 local next_page=""
 
+if strutil.strlen(page) ==0 then return nil end
 S=stream.STREAM("https://commons.wikimedia.org"..page)
-print("get page: "..page)
 if S ~= nil
 then
 	html=S:readdoc()
@@ -1084,9 +1100,13 @@ then
 		url=HtmlTagExtractHRef(tag.data, 'class="galleryfilename galleryfilename-truncate"')
 		if strutil.strlen(url) > 0 then table.insert(mod.pages, url) 
 		else
-		url=HtmlTagExtractHRef(tag.data, '')
-		tag=XML:next()
-		if tag.data=="next page" then next_page=url end
+			url=HtmlTagExtractHRef(tag.data, 'class="image"')
+			if strutil.strlen(url) > 0 then table.insert(mod.pages, url) 
+			else
+				url=HtmlTagExtractHRef(tag.data, '')
+				tag=XML:next()
+				if tag.data=="next page" then next_page=url end
+			end
 		end
 	end
 	tag=XML:next()
@@ -1098,9 +1118,12 @@ end
 
 
 mod.get=function(self, source)
-local next_page
+local next_page, page
 
-next_page=mod.get_page(source, "/wiki/Category:Commons_featured_desktop_backgrounds")
+page=string.sub(source, 11)
+if strutil.strlen(page) == 0 then page="Category:Commons_featured_desktop_backgrounds" end
+
+next_page=mod.get_page(self, "/wiki/".. page)
 while strutil.strlen(next_page) > 0
 do
 next_page=mod.get_page(source, next_page)
@@ -1375,6 +1398,28 @@ end
 end
 
 
+function SaveWallpaper(url, dest, root_dir)
+local obj
+
+if strutil.strlen(dest)==0 
+then
+print("ERROR: no destination directory given")
+else
+	if url=="current" then url=GetCurrWallpaperDetails().url end
+	obj=InitLocalFiles(root_dir)
+	obj:add_image(url, "local:"..dest) 
+end
+end
+
+function FaveWallpaper(url, dest)
+if strutil.strlen(dest)==0 
+then
+print("ERROR: no favorites category given")
+else
+SaveWallpaper(url, settings.working_dir.."/faves/"..dest, settings.working_dir.."/faves/")
+end
+
+end
 
 function PrintHelp()
 
@@ -1391,6 +1436,10 @@ print("  -disable <source>                                disable a source in th
 print("  -enable <source>                                 enable a source in the list of default sources.")
 print("  -block <image url>                               block an image url so this image can never be used.")
 print("  -block-curr                                      block the current image so it is never used.")
+print("  -save-curr  <dest directory>                     save current image to a destination directory.")
+print("  -fave-curr  <name>                               save current image to a favorites collection named '<name>'.")
+print("  -save <url> <dest directory>                     save image at <url> to a destination directory.")
+print("  -fave <url> <name>                               save image at <url> to a favorites collection named '<name>'.")
 print("  -info                                            info on current image.")
 print("  -title                                           title of current image (or URL if no title).")
 print("  -setroot <program name>                          use specified program to set background.")
@@ -1402,13 +1451,20 @@ print("  --help                                           this help")
 print("")
 print("wallpaper_mgr.lua uses xrandr or 'xprop -root' to discover the size of the desktop, and downloads images close to that on sites that support multiple resolutions. If xrandr and xprop aren't available, and the user doesn't supply a resolution on the command line, then it defaults to 1920x1200.")
 print("")
-print("wallpaper_mgr.lua has a default list of sources consisting of 'bing:en-US, bing:en-GB, nasa:apod, wallpapers13:cities-wallpapers, wallpapers13:nature-wallpapers/beach-wallpapers, wallpapers13:nature-wallpapers/waterfalls-wallpapers, wallpapers13:nature-wallpapers/flowers-wallpapers, wallpapers13:nature-wallpapers/sunset-wallpapers, wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers, wallpapers13:nature-wallpapers/landscapes-wallpapers, getwallpapers:ocean-scene-wallpaper, getwallpapers:nature-desktop-wallpapers-backgrounds, getwallpapers:milky-way-wallpaper-1920x1080, getwallpapers:1920x1080-hd-autumn-wallpapers, hipwallpapers:daily, suwalls:flowers, suwalls:beaches, suwalls:abstract, suwalls:nature, suwalls:space, chandra:stars, chandra:galaxy, esahubble:nebulae, esahubble:galaxies, esahubble:stars, esahubble:starclusters'. This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'catagory' pages on each site.")
+print("wallpaper_mgr.lua has a default list of sources consisting of:")
+print("")
+print("   'bing:en-US, bing:en-GB, nasa:apod, wallpapers13:cities-wallpapers, wallpapers13:nature-wallpapers/beach-wallpapers, wallpapers13:nature-wallpapers/waterfalls-wallpapers, wallpapers13:nature-wallpapers/flowers-wallpapers, wallpapers13:nature-wallpapers/sunset-wallpapers, wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers, wallpapers13:nature-wallpapers/landscapes-wallpapers, getwallpapers:ocean-scene-wallpaper, getwallpapers:nature-desktop-wallpapers-backgrounds, getwallpapers:milky-way-wallpaper-1920x1080, getwallpapers:1920x1080-hd-autumn-wallpapers, hipwallpapers:daily, suwalls:flowers, suwalls:beaches, suwalls:abstract, suwalls:nature, suwalls:space, chandra:stars, chandra:galaxy, esahubble:nebulae, esahubble:galaxies, esahubble:stars, esahubble:starclusters, wikimedia:Category:Commons_featured_desktop_backgrounds, wikimedia:Category:Hubble_images_of_galaxies, wikimedia:Category:Hubble_images_of_nebulae, wikimedia:wikimedia:User:Pfctdayelise/wallpapers, wikimedia:User:Miya/POTY/Nature_views2008, wikimedia:Lightning, wikimedia:Fog, wikimedia:Autumn, wikimedia:Sunset, wikimedia:Commons:Featured_pictures/Places/Other, wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors, wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes.")
+print("")
+print("This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'category' pages on each site.")
 end
 
 
 function ParseCommandLine()
-local i, str, details
-local act="random"
+local i, str
+local act="none"
+local target=""
+
+if #arg == 0 then return "random" end
 
 for i,str in ipairs(arg)
 do
@@ -1416,14 +1472,18 @@ do
 	elseif str=="-info" then act="info" 
 	elseif str=="-title" then act="title" 
 	elseif str=="-list" then act="list" 
-	elseif str=="-add" then act="add:" .. arg[i+1] ; arg[i+1]=""
-	elseif str=="-del" then act="remove:" .. arg[i+1] ; arg[i+1]=""
-	elseif str=="-rm" then act="remove:" .. arg[i+1] ; arg[i+1]=""
-	elseif str=="-remove" then act="remove:" .. arg[i+1] ; arg[i+1]=""
-	elseif str=="-disable" then act="disable:" .. arg[i+1] ; arg[i+1]=""
-	elseif str=="-enable" then act="enable:" .. arg[i+1] ; arg[i+1]=""
-	elseif str=="-block" then act="block:" .. arg[i+1] ; arg[i+1]=""
-	elseif str=="-block-curr" then details=GetCurrWallpaperDetails(); act="block:" .. details.url
+	elseif str=="-add" then act="add" ; target=arg[i+1] ; arg[i+1]=""
+	elseif str=="-del" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+	elseif str=="-rm" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+	elseif str=="-remove" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+	elseif str=="-disable" then act="disable" ; target=arg[i+1] ; arg[i+1]=""
+	elseif str=="-enable" then act="enable" ; target=arg[i+1] ; arg[i+1]=""
+	elseif str=="-block" then act="block" ; target=arg[i+1] ; arg[i+1]=""
+	elseif str=="-block-curr" then act="block-curr"
+	elseif str=="-save-curr" then act="save-curr"; target=arg[i+1]; arg[i+1]=""
+	elseif str=="-fave-curr" then act="fave-curr"; target=arg[i+1]; arg[i+1]=""
+	elseif str=="-save" then act="save"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
+	elseif str=="-fave" then act="fave"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
 	elseif str=="-setroot" then settings.setroot=arg[i+1]; arg[i+1]=""
 	elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
 	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
@@ -1433,7 +1493,7 @@ do
 	end
 end
 
-return act
+return act,target,src_url
 end
 
 
@@ -1453,18 +1513,22 @@ settings.resolution=resolution:get()
 process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
 
 
-act=ParseCommandLine()
-
+act,target=ParseCommandLine()
 
 if act=="help" then PrintHelp()
 elseif act=="random" then WallpaperFromRandomSource(source_list)
 elseif act=="info" then ShowCurrWallpaperDetails()
 elseif act=="title" then ShowCurrWallpaperTitle()
 elseif act=="list" then sources:list()
-elseif string.sub(act, 1, 8) == "disable:" then sources:disable(string.sub(act, 9))
-elseif string.sub(act, 1, 7) == "enable:" then sources:enable(string.sub(act, 8))
-elseif string.sub(act, 1, 4) == "add:" then sources:add(string.sub(act, 5))
-elseif string.sub(act, 1, 7) == "remove:" then sources:remove(string.sub(act, 8))
-elseif string.sub(act, 1, 6) == "block:" then blocklist:add(string.sub(act, 7))
+elseif act=="disable" then sources:disable(target)
+elseif act=="enable" then sources:enable(target)
+elseif act=="add" then sources:add(target)
+elseif act=="remove" then sources:remove(target)
+elseif act=="block-curr" then blocklist:add(GetCurrWallpaperDetails().url) 
+elseif act=="save-curr" then SaveWallpaper("current", target)
+elseif act=="fave-curr" then FaveWallpaper("current", target)
+elseif act=="save" then SaveWallpaper(src_url, target)
+elseif act=="fave" then FaveWallpaper(src_url, target)
+else print("unrecognized command-line.")
 end
 

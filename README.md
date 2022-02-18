@@ -44,6 +44,10 @@ options:
   -enable <source>                                 enable a source in the list of default sources.
   -block <image url>                               block an image url so this image can never be used.
   -block-curr                                      block the current image so it is never used.
+  -save-curr  <dest directory>                     save current image to a destination directory.
+  -fave-curr  <name>                               save current image to a favorites collection named '<name>'.
+  -save <url> <dest directory>                     save image at <url> to a destination directory.
+  -fave <url> <name>                               save image at <url> to a favorites collection named '<name>'.
   -info                                            info on current image.
   -title                                           title of current image (or URL if no title).
   -setroot <program name>                          use specified program to set background.
@@ -59,7 +63,11 @@ wallpaper_mgr.lua uses xrandr or 'xprop -root' to discover the size of the deskt
 
 wallpaper_mgr.lua searches for one of the following programs: "feh, display (image magick), xli, qiv, wmsetbg, Esetroot, xv, setwallpaper, setroot" to use for setting the desktop wallpaper. Alternatively the user can specify a program using the '-setroot' option. Unfortunately this likely won't work on Gnome, KDE and Enlightenment desktop systems, which don't have good support for programmatically setting the wallpaper. wallpaper_mgr.lua attempts a 'hail mary' use of the gsettings app to set the wallpaper under Gnome, and 'Esetroot' should work on enlightenment based desktops (but has been seen not to). It should work fine on systems that use a window-manager like jwm, or vtwm, etc.
 
-wallpaper_mgr.lua has a default list of sources consisting of 'bing:en-US, bing:en-GB, nasa:apod, wallpapers13:cities-wallpapers, wallpapers13:nature-wallpapers/beach-wallpapers, wallpapers13:nature-wallpapers/waterfalls-wallpapers, wallpapers13:nature-wallpapers/flowers-wallpapers, wallpapers13:nature-wallpapers/sunset-wallpapers, wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers, wallpapers13:nature-wallpapers/landscapes-wallpapers, getwallpapers:ocean-scene-wallpaper, getwallpapers:nature-desktop-wallpapers-backgrounds, getwallpapers:milky-way-wallpaper-1920x1080, getwallpapers:1920x1080-hd-autumn-wallpapers, hipwallpapers:daily, suwalls:flowers, suwalls:beaches, suwalls:abstract, suwalls:nature, suwalls:space, chandra:stars, chandra:galaxy, esahubble:nebulae, esahubble:galaxies, esahubble:stars, esahubble:starclusters'. This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'catagory' pages on each site.
+wallpaper_mgr.lua has a default list of sources consisting of:
+
+   'bing:en-US, bing:en-GB, nasa:apod, wallpapers13:cities-wallpapers, wallpapers13:nature-wallpapers/beach-wallpapers, wallpapers13:nature-wallpapers/waterfalls-wallpapers, wallpapers13:nature-wallpapers/flowers-wallpapers, wallpapers13:nature-wallpapers/sunset-wallpapers, wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers, wallpapers13:nature-wallpapers/landscapes-wallpapers, getwallpapers:ocean-scene-wallpaper, getwallpapers:nature-desktop-wallpapers-backgrounds, getwallpapers:milky-way-wallpaper-1920x1080, getwallpapers:1920x1080-hd-autumn-wallpapers, hipwallpapers:daily, suwalls:flowers, suwalls:beaches, suwalls:abstract, suwalls:nature, suwalls:space, chandra:stars, chandra:galaxy, esahubble:nebulae, esahubble:galaxies, esahubble:stars, esahubble:starclusters, wikimedia:Category:Commons_featured_desktop_backgrounds, wikimedia:Category:Hubble_images_of_galaxies, wikimedia:Category:Hubble_images_of_nebulae, wikimedia:User:Pfctdayelise/wallpapers, wikimedia:User:Miya/POTY/Nature_views2008, wikimedia:Lightning, wikimedia:Fog, wikimedia:Autumn, wikimedia:Sunset, wikimedia:Commons:Featured_pictures/Places/Other, wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors, wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes.
+
+This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'category' pages on each site.
 
 
 LOCAL SOURCES
@@ -93,3 +101,16 @@ wallpaper_mgr.lua -sources playlist:backgrounds.lst
 ```
 
 then a random file will be picked from the list and displayed.
+
+
+WIKIMEDIA SOURCES
+=================
+
+When using image pages listed on wikimedia care must be taken that these are really on wikimedia, not wikipedia or other sites in the wikiverse. Notice also that pages must include any 'category' component to their name, if one exists. 'Commons', 'User' and 'Category' pages must therefore be included as:
+
+
+```
+wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors
+wikimedia:Category:Hubble_images_of_galaxies
+wikimedia:User:Miya/POTY/Nature_views2008
+```

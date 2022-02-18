@@ -3,7 +3,7 @@ require("strutil")
 require("xml")
 require("process")
 require("filesys")
-
+require("hash")
 
 
 function SelectRandomItem(choices)
