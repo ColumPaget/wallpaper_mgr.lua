@@ -2,7 +2,7 @@
 
 function SetRoot(image_path)
 
-local programs={"feh --no-fehbg --bg-center --bg-fill", "display -window root", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
+local programs={"feh --no-fehbg --bg-center --bg-fill", "display -window root", "gm display -window root", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
 
 if strutil.strlen(settings.setroot) > 0
 then
