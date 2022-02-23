@@ -7,7 +7,6 @@ local result=false
 
 mod=sources:select(source)
 
-print(source)
 if mod ~= nil
 then 
 url,title,description=mod:get(source) 
@@ -115,7 +114,7 @@ end
 
 
 function ParseCommandLine()
-local i, str
+local i, str, source_list, src_url
 local act="none"
 local target=""
 
@@ -168,7 +167,7 @@ settings.resolution=resolution:get()
 process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
 
 
-act,target=ParseCommandLine()
+act,target,src_url,source_list=ParseCommandLine()
 
 if act=="help" then PrintHelp()
 elseif act=="random" then WallpaperFromRandomSource(source_list)

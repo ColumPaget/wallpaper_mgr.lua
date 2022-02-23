@@ -158,7 +158,7 @@ end
 
 
 mod.sources=mod:load()
-if mod.sources == nil
+if mod.sources == nil or #mod.sources == 0
 then
 	mod:save(mod.default_sources)
 	mod.sources=mod:load()
