@@ -1460,13 +1460,13 @@ end
 
 function ParseCommandLine()
 local i, str, source_list, src_url
-local act="none"
+local act="random"
 local target=""
-
-if #arg == 0 then return "random" end
 
 for i,str in ipairs(arg)
 do
+if strutil.strlen(str) > 0
+then
 	if str=="-sources" then source_list=sources:parse(arg[i+1])  ; arg[i+1]=""
 	elseif str=="-info" then act="info" 
 	elseif str=="-title" then act="title" 
@@ -1489,7 +1489,9 @@ do
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
+	else act="error"; print("unknown option '"..str.."'")
 	end
+end
 end
 
 return act,target,src_url
