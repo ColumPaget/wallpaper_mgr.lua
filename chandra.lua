@@ -26,7 +26,9 @@ if item.resolution == best_res then table.insert(selected_items, item) end
 end
 
 item=SelectRandomItem(selected_items)
-print("selected resolution: "..best_res.." url:"..item.url)
+if item ~= nil then print("selected resolution: "..best_res.." url:"..item.url)
+else print("fail: can't find image from chandra.harvard.edu")
+end
 
 return item
 end
