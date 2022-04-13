@@ -519,7 +519,7 @@ end
 
 item=SelectRandomItem(selected_items)
 if item ~= nil then print("selected resolution: "..best_res.." url:"..item.url)
-else print("fail: can't find image from chandra.harvard.edu");
+else print("fail: can't find image from chandra.harvard.edu")
 end
 
 return item
@@ -1422,6 +1422,7 @@ end
 
 end
 
+
 function PrintHelp()
 
 print("")
@@ -1445,6 +1446,7 @@ print("  -info                                            info on current image.
 print("  -title                                           title of current image (or URL if no title).")
 print("  -setroot <program name>                          use specified program to set background.")
 print("  -resolution <resolution>                         get images matching <resolution>")
+print("  -exe_path <path>                                 colon-separated search path for 'setroot' programs. e.g. -exec_path /usr/X11R7/bin:/usr/bin")
 print("  -res <resolution>                                get images matching <resolution>")
 print("  -?                                               this help")
 print("  -help                                            this help")
@@ -1488,6 +1490,7 @@ then
 	elseif str=="-setroot" then settings.setroot=arg[i+1]; arg[i+1]=""
 	elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
 	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
+	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"

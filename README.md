@@ -51,6 +51,7 @@ options:
   -info                                            info on current image.
   -title                                           title of current image (or URL if no title).
   -setroot <program name>                          use specified program to set background.
+  -exe_path <path>                                 colon-seperated search path for 'setroot' executables. e.g. '-exe_path /usr/X11R7/bin:/usr/bin'.
   -resolution <resolution>                         get images matching <resolution>
   -res <resolution>                                get images matching <resolution>
   -?                                               this help
