@@ -91,6 +91,13 @@ mod.items={}
 mod.add=function(self, url)
 local S, str
 
+if strutil.strlen(url) == 0 then return false end
+
+for i,item in ipairs(self.items)
+do
+if item==url then return false end
+end
+
 S=stream.STREAM(settings.working_dir.."/blocked.lst", "a")
 if S ~= nil
 then
@@ -98,6 +105,7 @@ S:writeln(url.."\n")
 S:close()
 end
 
+return true
 end
 
 mod.load=function(self)
@@ -1142,7 +1150,8 @@ end
 
 function SetRoot(image_path)
 
-local programs={"hsetroot -cover", "feh --no-fehbg --bg-center --bg-fill", "display -window root", "gm display -window root", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
+local programs={"hsetroot -cover", "feh --no-fehbg --bg-center --bg-fill", "display -window root -backdrop", "gm display -window root -backdrop", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
+local cmd, i, toks, item, str, path
 
 if strutil.strlen(settings.setroot) > 0
 then
@@ -1157,9 +1166,12 @@ do
 	if strutil.strlen(path) > 0
 	then
 	cmd=path.." "..toks:remaining() .. " " .. image_path
+	
 	break
 	end
 end
+
+cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
 
 --if the user has 'gesettings' installed, then assume they have a gnome desktop and set that too
 path=filesys.find("gsettings", process.getenv("PATH"))
@@ -1258,6 +1270,34 @@ end
 
 
 
+mod.xwininfo_resolution=function(self)
+local S, str, pos
+local resolution=""
+
+S=stream.STREAM("cmd:xwininfo -root", "")
+if S ~= nil
+then
+	str=S:readln()
+	while str ~= nil
+	do
+	str=strutil.trim(str)
+	if string.sub(str,1,10) == "-geometry "
+	then
+print(str)
+		resolution=string.sub(str, 11)
+		pos=string.find(resolution, '+')
+		if pos ~= nil then resolution=string.sub(resolution, 1, pos-1) end
+	end
+	str=S:readln()
+	end
+end
+
+print(resolution)
+return resolution
+end
+
+
+
 mod.xprop_resolution=function(self)
 local S, str, toks
 local resolution=""
@@ -1293,8 +1333,10 @@ mod.get=function(self)
 local S, str, resolution
 
 if strutil.strlen(settings.resolution) > 0 then return settings.resolution end
+
 resolution=self:xrandr_resolution()
-if strutil.strlen(resolution) then resolution=self:xprop_resolution() end
+if strutil.strlen(resolution) == 0 then resolution=self:xwininfo_resolution() end
+if strutil.strlen(resolution) == 0 then resolution=self:xprop_resolution() end
 
 return resolution
 end
@@ -1344,6 +1386,53 @@ return better
 end
 
 return mod
+end
+-- pigeonholed is a server that stores lists and values for other apps. We use it to sync our blocklist and favorites
+
+function PigeonholedSendBlocklist(S)
+local i, url, str;
+
+	S:writeln("array wallpaper_mgr blocklist\n");
+	str=S:readln()
+	for i,url in ipairs(blocklist.items)
+	do
+	S:writeln("write wallpaper_mgr blocklist " .. url ..  "\n");
+	str=S:readln()
+	end
+end
+
+
+function PigeonholedReadBlocklist(S)
+local item, toks, str;
+
+	S:writeln("read wallpaper_mgr blocklist\n");
+	str=S:readln()
+	toks=strutil.TOKENIZER(str, "\\S", "Q")
+	if toks:next() == "+OK"
+	then
+		item=toks:next()
+		while item ~= nil
+		do
+		if blocklist:add(item) then print("blocklist add: "..item) end
+		item=toks:next()
+		end
+	end
+
+end
+
+
+
+function PigeonholedSync(ph_server)
+local S
+
+S=stream.STREAM(ph_server)
+if S ~= nil
+then
+	PigeonholedSendBlocklist(S)
+	PigeonholedReadBlocklist(S)
+	S:close()
+end
+
 end
 
 
@@ -1491,6 +1580,7 @@ then
 	elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
 	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
 	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
+	elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
@@ -1536,6 +1626,7 @@ elseif act=="fave-curr" then FaveWallpaper("current", target)
 elseif act=="block" then blocklist:add(target) 
 elseif act=="save" then SaveWallpaper(src_url, target)
 elseif act=="fave" then FaveWallpaper(src_url, target)
+elseif act=="sync" then PigeonholedSync(target)
 else print("unrecognized command-line.")
 end
 

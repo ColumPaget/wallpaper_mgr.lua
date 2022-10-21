@@ -36,6 +36,34 @@ end
 
 
 
+mod.xwininfo_resolution=function(self)
+local S, str, pos
+local resolution=""
+
+S=stream.STREAM("cmd:xwininfo -root", "")
+if S ~= nil
+then
+	str=S:readln()
+	while str ~= nil
+	do
+	str=strutil.trim(str)
+	if string.sub(str,1,10) == "-geometry "
+	then
+print(str)
+		resolution=string.sub(str, 11)
+		pos=string.find(resolution, '+')
+		if pos ~= nil then resolution=string.sub(resolution, 1, pos-1) end
+	end
+	str=S:readln()
+	end
+end
+
+print(resolution)
+return resolution
+end
+
+
+
 mod.xprop_resolution=function(self)
 local S, str, toks
 local resolution=""
@@ -71,8 +99,10 @@ mod.get=function(self)
 local S, str, resolution
 
 if strutil.strlen(settings.resolution) > 0 then return settings.resolution end
+
 resolution=self:xrandr_resolution()
-if strutil.strlen(resolution) then resolution=self:xprop_resolution() end
+if strutil.strlen(resolution) == 0 then resolution=self:xwininfo_resolution() end
+if strutil.strlen(resolution) == 0 then resolution=self:xprop_resolution() end
 
 return resolution
 end

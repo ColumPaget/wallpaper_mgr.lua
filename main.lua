@@ -144,6 +144,7 @@ then
 	elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
 	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
 	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
+	elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
@@ -189,6 +190,7 @@ elseif act=="fave-curr" then FaveWallpaper("current", target)
 elseif act=="block" then blocklist:add(target) 
 elseif act=="save" then SaveWallpaper(src_url, target)
 elseif act=="fave" then FaveWallpaper(src_url, target)
+elseif act=="sync" then PigeonholedSync(target)
 else print("unrecognized command-line.")
 end
 

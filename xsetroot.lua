@@ -2,7 +2,8 @@
 
 function SetRoot(image_path)
 
-local programs={"hsetroot -cover", "feh --no-fehbg --bg-center --bg-fill", "display -window root", "gm display -window root", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
+local programs={"hsetroot -cover", "feh --no-fehbg --bg-center --bg-fill", "display -window root -backdrop", "gm display -window root -backdrop", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
+local cmd, i, toks, item, str, path
 
 if strutil.strlen(settings.setroot) > 0
 then
@@ -17,9 +18,12 @@ do
 	if strutil.strlen(path) > 0
 	then
 	cmd=path.." "..toks:remaining() .. " " .. image_path
+	
 	break
 	end
 end
+
+cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
 
 --if the user has 'gesettings' installed, then assume they have a gnome desktop and set that too
 path=filesys.find("gsettings", process.getenv("PATH"))
