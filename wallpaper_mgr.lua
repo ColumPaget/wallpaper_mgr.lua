@@ -734,7 +734,15 @@ GLOB=filesys.GLOB(path.."/*")
 item=GLOB:next()
 while item ~= nil
 do
-	if GLOB:info().type == "file" then table.insert(self.files, item) end
+	if GLOB:info().type == "file"
+	then
+print("GLOB:"..item.." "..GLOB:info().type)
+	 table.insert(self.files, item)
+	elseif GLOB:info().type == "directory" and string.sub(item, 1, 1) ~= "."
+	then
+	 mod:get("local:"..item)
+	end
+
 	item=GLOB:next()
 end
 
@@ -1589,7 +1597,7 @@ then
 end
 end
 
-return act,target,src_url
+return act,target,src_url,source_list
 end
 
 

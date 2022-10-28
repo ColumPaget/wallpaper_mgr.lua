@@ -17,7 +17,14 @@ GLOB=filesys.GLOB(path.."/*")
 item=GLOB:next()
 while item ~= nil
 do
-	if GLOB:info().type == "file" then table.insert(self.files, item) end
+	if GLOB:info().type == "file"
+	then
+	 table.insert(self.files, item)
+	elseif GLOB:info().type == "directory" and string.sub(item, 1, 1) ~= "."
+	then
+	 mod:get("local:"..item)
+	end
+
 	item=GLOB:next()
 end
 

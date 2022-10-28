@@ -153,7 +153,7 @@ then
 end
 end
 
-return act,target,src_url
+return act,target,src_url,source_list
 end
 
 
