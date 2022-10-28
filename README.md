@@ -74,15 +74,28 @@ This list includes entries from all supported sites, and other things can be add
 LOCAL SOURCES
 =============
 
-There are two types of 'local sources' that wallpaper_mgr.lua supports.
+There are three types of 'local sources' that wallpaper_mgr.lua supports.
 
 
 ```
-local:<dir>        pick files randomly from the directory <dir>
+local:<dir>         pick files randomly from the directory <dir>
+faves:<name>        pick files randomly from the favorites directory named <name>
 playlist:<path>     pick files randomly from a list in 'playlist' file <path>
 ```
 
-playlist files can include http, https, geminii or SSH urls. SSH urls must be set up as hosts stored in the ssh .config file with an ssh key, so that they can log in without needing a password.
+Favorites are images that have previously been stored with the '-fave' or '-fave-curr' options. They are generally stored under `~/.local/share/wallpaper/faves/` so:
+
+
+```
+wallpaper_mgr.lua -sources faves:autumn
+```
+
+will select a random image from the directory `~/.local/share/wallpaper/faves/`
+
+specifying '-faves:' or '-faves:.' will result in selecting any image stored in any directory under `~/.local/share/wallpaper/faves/`
+
+
+Playlist files can include http, https, geminii or SSH urls. SSH urls must be set up as hosts stored in the ssh .config file with an ssh key, so that they can log in without needing a password.
 
 For example a playlist file might contain:
 

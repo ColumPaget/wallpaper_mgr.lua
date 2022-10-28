@@ -78,7 +78,7 @@ elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
 elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
-elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(settings.working_dir.."/faves/")
+elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
 elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
 end
 

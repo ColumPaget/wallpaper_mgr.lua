@@ -6,14 +6,14 @@ function InitLocalFiles(root_dir)
 local mod={}
 
 mod.root_dir=""
-if strutil.strlen(root_dir) > 0 then mod.root_dir=root_dir.."/" end
+if strutil.strlen(root_dir) > 0 then mod.root_dir=filesys.pathaddslash(root_dir) end
 mod.files={}
 
 mod.get=function(self, source)
-local item, GLOB
+local item, path, str, GLOB, len
 
-path=mod.root_dir..string.sub(source, 7)
-GLOB=filesys.GLOB(path.."/*")
+path=filesys.pathaddslash(self.root_dir..string.sub(source, 7))
+GLOB=filesys.GLOB(path.."*")
 item=GLOB:next()
 while item ~= nil
 do
@@ -22,7 +22,11 @@ do
 	 table.insert(self.files, item)
 	elseif GLOB:info().type == "directory" and string.sub(item, 1, 1) ~= "."
 	then
-	 mod:get("local:"..item)
+	 len=strutil.strlen(self.root_dir)
+	 if len > 0 and string.sub(item, 1, len)==self.root_dir then str=string.sub(item, len) 
+	 else str=item
+	 end
+	 self:get("local:" .. str)
 	end
 
 	item=GLOB:next()
@@ -30,6 +34,8 @@ end
 
 return SelectRandomItem(self.files)
 end
+
+
 
 mod.add_image=function(self, url, source)
 local path, str
