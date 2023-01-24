@@ -15,6 +15,8 @@ SYNOPSIS
 
 wallpaper_mgr.lua is a program that downloads randomly selected images from a list of sites that offer desktop wallpapers, and uses a 'setroot' program to display these on the X11 root window. It requires libUseful (https://github.com/ColumPaget/libUseful) and libUseful-lua (https://github.com/ColumPaget/libUseful-lua) to be installed. 
 
+wallpaper_mgr.lua also tries to set the background on the gnome and mate desktops, using  the 'gsettings' or 'dconf' programs.
+
 
 INSTALL
 =======
