@@ -23,11 +23,18 @@ do
 	end
 end
 
-cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
+if strutil.strlen(cmd) > 0 then cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
+else print("ERROR: no suitable command found to set root window background")
+end
 
---if the user has 'gesettings' installed, then assume they have a gnome desktop and set that too
+--if the user has 'gsettings' installed, then assume they have a gnome desktop and set that too
 path=filesys.find("gsettings", process.getenv("PATH"))
 if strutil.strlen(path) > 0 then os.execute("gsettings set org.gnome.desktop.background picture-uri file://" .. image_path) end
+
+--if the user has 'dconf' installed, then assume they have a mate desktop and set that too
+path=filesys.find("dconf", process.getenv("PATH"))
+if strutil.strlen(path) > 0 then os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
+
 
 end
 
