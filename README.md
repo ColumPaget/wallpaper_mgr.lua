@@ -10,6 +10,13 @@ DISCLAIMER
 
 This is free software. It comes with no guarentees and I take no responsiblity if it makes your computer explode or opens a portal to the demon dimensions, or does anything at all, or doesn't.
 
+
+LICENSE
+=======
+
+wallpaper_mgr.lua is released under the GPLv3.
+
+
 SYNOPSIS
 ========
 
@@ -37,6 +44,7 @@ USAGE
 wallpaper_mgr.lua [options]
 options:
   -sources <comma separated list of sources>       list of sources to get images from, overriding the default list.
+  +sources <comma separated list of sources>       append to list of sources.
   -list                                            list default sources.
   -add <source>                                    add a source to the list of default sources.
   -del <source>                                    remove an item from the list of default sources.
@@ -64,7 +72,7 @@ options:
 
 wallpaper_mgr.lua uses xrandr or 'xprop -root' to discover the size of the desktop, and downloads images close to that on sites that support multiple resolutions. If xrandr and xprop aren't available, and the user doesn't supply a resolution on the command line, then it defaults to 1920x1200.
 
-wallpaper_mgr.lua searches for one of the following programs: "feh, display (image magick), xli, qiv, wmsetbg, Esetroot, xv, setwallpaper, setroot" to use for setting the desktop wallpaper. Alternatively the user can specify a program using the '-setroot' option. Unfortunately this likely won't work on Gnome, KDE and Enlightenment desktop systems, which don't have good support for programmatically setting the wallpaper. wallpaper_mgr.lua attempts a 'hail mary' use of the gsettings app to set the wallpaper under Gnome, and 'Esetroot' should work on enlightenment based desktops (but has been seen not to). It should work fine on systems that use a window-manager like jwm, or vtwm, etc.
+wallpaper_mgr.lua searches for one of the following programs: "feh, display (image magick), xli, qiv, wmsetbg, Esetroot, xv, setwallpaper, setroot" to use for setting the desktop wallpaper. Alternatively the user can specify a program using the '-setroot' option. Unfortunately this likely won't work on GNOME, KDE and Enlightenment desktop systems, which don't have good support for programmatically setting the wallpaper. wallpaper_mgr.lua attempts a 'hail mary' use of the gsettings app to set the wallpaper under GNOME, and also attempts to use the same for the Cinnamon desktop. If dconf is installed, wallpaper_mgr.lua will use that to set background for the MATE desktop (this has been seen to work). 'Esetroot' should work on enlightenment based desktops (but has been seen not to). It should work fine on systems that use a window-manager like jwm, or vtwm, etc.
 
 wallpaper_mgr.lua has a default list of sources consisting of:
 
@@ -117,6 +125,15 @@ wallpaper_mgr.lua -sources playlist:backgrounds.lst
 ```
 
 then a random file will be picked from the list and displayed.
+
+If wallpaper_mgr.lua cannot download from the source it chooses, it attempts to 'fallback' to one of the local sources in the source list. Thus the `+sources` command can be used to append local sources to the default list, allowing images to be set from local sources if network sources are not available. e.g.
+
+
+```
+wallpaper_mgr.lua +sources local:/usr/share/backgrounds,faves:*
+```
+
+
 
 
 WIKIMEDIA SOURCES

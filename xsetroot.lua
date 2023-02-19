@@ -23,28 +23,37 @@ do
 	end
 end
 
-if strutil.strlen(cmd) > 0 then cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
-else print("ERROR: no suitable command found to set root window background")
+
+-- if we found an x11 command then use it
+if strutil.strlen(cmd) > 0 
+then
+cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
+print("setting X11 root window with: "..cmd)
+os.execute(cmd)
 end
+
 
 --if the user has 'gsettings' installed, then assume they have a gnome desktop and set that too
 path=filesys.find("gsettings", process.getenv("PATH"))
-if strutil.strlen(path) > 0 then os.execute("gsettings set org.gnome.desktop.background picture-uri file://" .. image_path) end
+if strutil.strlen(path) > 0 
+then 
+print("gsettings command found. Setting background for gnome desktop")
+os.execute("gsettings set org.gnome.desktop.background picture-uri file:///" .. image_path) 
+print("gsettings command found. Setting background for cinnamon desktop")
+os.execute("gsettings set org.cinnamon.desktop.background picture-uri file:///" .. image_path) 
+cmd="gsettings"
+end
 
 --if the user has 'dconf' installed, then assume they have a mate desktop and set that too
 path=filesys.find("dconf", process.getenv("PATH"))
-if strutil.strlen(path) > 0 then os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
-
-
-end
-
-if strutil.strlen(cmd) > 0
+if strutil.strlen(path) > 0
 then
-	print(cmd)
-	os.execute(cmd)
-else
-	print("ERROR: no 'setroot' program found")
+print("deconf command found. Setting background for mate desktop")
+os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
+cmd="dconf"
 end
+
+if strutil.strlen(cmd) == 0 then print("ERROR: no suitable command found to set root window background") end
 
 end
 

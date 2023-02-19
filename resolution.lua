@@ -151,5 +151,8 @@ if better==true then mod.best_resolution=res end
 return better
 end
 
+
+settings.resolution=mod:get()
+
 return mod
 end

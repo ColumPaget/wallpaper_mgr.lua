@@ -5,6 +5,12 @@ require("process")
 require("filesys")
 require("hash")
 
+function table_join(t1, t2)
+local i, item
+
+for i,item in ipairs(t2) do table.insert(t1, item) end
+end
+
 
 function SelectRandomItem(choices)
 local val, i
