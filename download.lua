@@ -2,6 +2,8 @@ function GetWallpaper(url, source, title, description)
 local S, fname
 local result=false
 
+if url==nil then return false end
+
 print("GET: "..url)
 
 fname=settings.working_dir.."/current-wallpaper.jpg"

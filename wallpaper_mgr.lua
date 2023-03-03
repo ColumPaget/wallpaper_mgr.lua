@@ -880,6 +880,8 @@ end
 mod.get_image=function(self, page_url, source)
 local S, XML, tag, url, str, res, selected_res
 
+if page_url==nil then return end
+
 S=stream.STREAM(page_url, "r")
 if S ~= nil
 then
@@ -907,7 +909,7 @@ then
 	end
 end
 
-print("selected resolution: "..selected_res.." url: "..url)
+print("selected resolution: "..selected_res.." url: "..tostring(url))
 
 return url, title
 end
@@ -1249,6 +1251,8 @@ end
 function GetWallpaper(url, source, title, description) 
 local S, fname
 local result=false
+
+if url==nil then return false end
 
 print("GET: "..url)
 
