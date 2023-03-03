@@ -27,6 +27,7 @@ local S, html, XML, tag
 local url=""
 local title=""
 
+if strutil.strlen(page) == 0 then return nil end
 S=stream.STREAM("https://suwalls.com" .. page, "")
 if S ~= nil
 then
