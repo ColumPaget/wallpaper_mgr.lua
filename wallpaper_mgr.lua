@@ -4,6 +4,7 @@ require("xml")
 require("process")
 require("filesys")
 require("hash")
+require("net")
 
 function table_join(t1, t2)
 local i, item
@@ -1524,6 +1525,7 @@ print("  -setroot <program name>                          use specified program 
 print("  -resolution <resolution>                         get images matching <resolution>")
 print("  -exe_path <path>                                 colon-separated search path for 'setroot' programs. e.g. -exec_path /usr/X11R7/bin:/usr/bin")
 print("  -res <resolution>                                get images matching <resolution>")
+print("  -proxy <url>                                     use given proxy server")
 print("  -?                                               this help")
 print("  -help                                            this help")
 print("  --help                                           this help")
@@ -1537,6 +1539,13 @@ print("")
 print("   'bing:en-US, bing:en-GB, nasa:apod, wallpapers13:cities-wallpapers, wallpapers13:nature-wallpapers/beach-wallpapers, wallpapers13:nature-wallpapers/waterfalls-wallpapers, wallpapers13:nature-wallpapers/flowers-wallpapers, wallpapers13:nature-wallpapers/sunset-wallpapers, wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers, wallpapers13:nature-wallpapers/landscapes-wallpapers, getwallpapers:ocean-scene-wallpaper, getwallpapers:nature-desktop-wallpapers-backgrounds, getwallpapers:milky-way-wallpaper-1920x1080, getwallpapers:1920x1080-hd-autumn-wallpapers, hipwallpapers:daily, suwalls:flowers, suwalls:beaches, suwalls:abstract, suwalls:nature, suwalls:space, chandra:stars, chandra:galaxy, esahubble:nebulae, esahubble:galaxies, esahubble:stars, esahubble:starclusters, wikimedia:Category:Commons_featured_desktop_backgrounds, wikimedia:Category:Hubble_images_of_galaxies, wikimedia:Category:Hubble_images_of_nebulae, wikimedia:wikimedia:User:Pfctdayelise/wallpapers, wikimedia:User:Miya/POTY/Nature_views2008, wikimedia:Lightning, wikimedia:Fog, wikimedia:Autumn, wikimedia:Sunset, wikimedia:Commons:Featured_pictures/Places/Other, wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors, wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes.")
 print("")
 print("This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'category' pages on each site.")
+print("")
+print("either using the -proxy command or setting the PROXY_SERVER environment variable allows setting a proxy server to use. Proxy server urls can be of the form:")
+print("   https:<username>:<password>@<host>:<port>")
+print("   socks:<username>:<password>@<host>:<port>")
+print("   sshtunnel:<ssh host>")
+print("<ssh host> is usually matching and entry in the ~/.ssh/config file")
+
 end
 
 
@@ -1616,6 +1625,17 @@ end
 end
 
 
+function ProxySetup()
+local str=""
+
+if strutil.strlen(settings.proxy) > 0 then str=settings.proxy
+else str=process.getenv("PROXY_SERVER")
+end
+
+if strutil.strlen(str) then net.setProxy(str) end
+
+end
+
 
 function ParseCommandLine()
 local i, str, list, source_list, src_url
@@ -1649,6 +1669,7 @@ then
 	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
 	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
 	elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
+	elseif str=="-proxy" then settings.proxy=arg[i+1]; arg[i+1]=""
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
@@ -1677,6 +1698,10 @@ process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
 
 
 act,target,src_url,source_list=ParseCommandLine()
+
+--if a proxy has been asked for on the command line or via
+--environment variables, then handle it
+ProxySetup()
 
 if act=="help" then PrintHelp()
 elseif act=="random" then WallpaperFromRandomSource(source_list)

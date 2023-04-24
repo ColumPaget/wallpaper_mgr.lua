@@ -75,6 +75,17 @@ end
 end
 
 
+function ProxySetup()
+local str=""
+
+if strutil.strlen(settings.proxy) > 0 then str=settings.proxy
+else str=process.getenv("PROXY_SERVER")
+end
+
+if strutil.strlen(str) then net.setProxy(str) end
+
+end
+
 
 function ParseCommandLine()
 local i, str, list, source_list, src_url
@@ -108,6 +119,7 @@ then
 	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
 	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
 	elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
+	elseif str=="-proxy" then settings.proxy=arg[i+1]; arg[i+1]=""
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
@@ -136,6 +148,10 @@ process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
 
 
 act,target,src_url,source_list=ParseCommandLine()
+
+--if a proxy has been asked for on the command line or via
+--environment variables, then handle it
+ProxySetup()
 
 if act=="help" then PrintHelp()
 elseif act=="random" then WallpaperFromRandomSource(source_list)

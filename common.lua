@@ -4,6 +4,7 @@ require("xml")
 require("process")
 require("filesys")
 require("hash")
+require("net")
 
 function table_join(t1, t2)
 local i, item
