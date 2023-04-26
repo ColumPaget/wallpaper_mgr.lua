@@ -102,7 +102,7 @@ wallpaper_mgr.lua -sources faves:autumn
 
 will select a random image from the directory `~/.local/share/wallpaper/faves/`
 
-specifying '-faves:' or '-faves:.' will result in selecting any image stored in any directory under `~/.local/share/wallpaper/faves/`
+specifying 'faves:' or 'faves:.' will result in selecting any image stored in any directory under `~/.local/share/wallpaper/faves/`
 
 
 Playlist files can include http, https, geminii or SSH urls. SSH urls must be set up as hosts stored in the ssh .config file with an ssh key, so that they can log in without needing a password.

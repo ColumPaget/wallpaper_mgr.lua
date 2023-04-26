@@ -35,7 +35,6 @@ then
   do
     item=sources:random(source_list)
     result=GetWallpaperFromSite(item) 
-print("GET: "..item.." "..tostring(result))
     if result == true then break end
   end
 
