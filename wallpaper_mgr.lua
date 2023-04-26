@@ -1249,6 +1249,27 @@ if strutil.strlen(cmd) == 0 then print("ERROR: no suitable command found to set 
 
 end
 
+function GetWallpaperOpenURL(url)
+local S
+
+S=stream.STREAM(url, "r")
+if S ~= nil
+then
+	if string.sub(url, 1, 5)=="http:" or string.sub(url, 1, 6)=="https:" 
+	then
+		if S:getvalue("HTTP:ResponseCode") ~= "200"
+		then
+			S:close()
+			return(nil)
+		end
+  end
+end
+
+return S
+end
+
+
+
 function GetWallpaper(url, source, title, description) 
 local S, fname
 local result=false
@@ -1260,8 +1281,8 @@ print("GET: "..url)
 fname=settings.working_dir.."/current-wallpaper.jpg"
 filesys.mkdirPath(fname)
 
-S=stream.STREAM(url, "r")
-if S ~= nil and S:getvalue("HTTP:ResponseCode")=="200"
+S=GetWallpaperOpenURL(url)
+if S ~= nil
 then
 	if S:copy(fname) > 0 then result=true end
 	S:close()
@@ -1557,13 +1578,12 @@ local result=false
 
 
 mod=sources:select(source)
-
 if mod ~= nil
 then 
 url,title,description=mod:get(source) 
+
 if strutil.strlen(url) > 0 
 then
-
 if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description) 
 else print("BLOCKED: " .. url .. ". Never use this image.")
 end
@@ -1586,6 +1606,7 @@ then
   do
     item=sources:random(source_list)
     result=GetWallpaperFromSite(item) 
+print("GET: "..item.." "..tostring(result))
     if result == true then break end
   end
 

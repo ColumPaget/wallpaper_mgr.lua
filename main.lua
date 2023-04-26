@@ -7,13 +7,12 @@ local result=false
 
 
 mod=sources:select(source)
-
 if mod ~= nil
 then 
 url,title,description=mod:get(source) 
+
 if strutil.strlen(url) > 0 
 then
-
 if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description) 
 else print("BLOCKED: " .. url .. ". Never use this image.")
 end
@@ -36,6 +35,7 @@ then
   do
     item=sources:random(source_list)
     result=GetWallpaperFromSite(item) 
+print("GET: "..item.." "..tostring(result))
     if result == true then break end
   end
 
