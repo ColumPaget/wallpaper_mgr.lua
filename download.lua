@@ -27,7 +27,7 @@ if url==nil then return false end
 
 print("GET: "..url)
 
-fname=settings.working_dir.."/current-wallpaper.jpg"
+fname=filesys.pathaddslash(settings.working_dir) .. "current-wallpaper.jpg"
 filesys.mkdirPath(fname)
 
 S=GetWallpaperOpenURL(url)

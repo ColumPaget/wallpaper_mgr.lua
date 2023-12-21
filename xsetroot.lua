@@ -1,4 +1,25 @@
 
+function XFCE4SetRoot(image_path)
+local S, str, prop_name
+
+S=process.PROCESS("xfconf-query --channel xfce4-desktop --list", "")
+if S ~= nil
+then
+  prop_name=S:readln()
+  while prop_name ~= nil
+  do
+     prop_name=strutil.trim(prop_name)
+     if strutil.pmatch("/backdrop/*/last-image", prop_name) == true 
+     then 
+     str="xfconf-query --channel xfce4-desktop --property '" .. prop_name .. "' --set '" .. image_path .."'"
+     os.execute(str)
+     end
+
+     prop_name=S:readln()
+  end
+end
+end
+
 
 function SetRoot(image_path)
 
@@ -39,9 +60,9 @@ end
 path=filesys.find("gsettings", process.getenv("PATH"))
 if strutil.strlen(path) > 0 
 then 
-print("gsettings command found. Setting background for gnome desktop")
+print("gsettings command found at ".. path ..". Setting background for gnome desktop")
 os.execute("gsettings set org.gnome.desktop.background picture-uri file:///" .. image_path) 
-print("gsettings command found. Setting background for cinnamon desktop")
+print("gsettings command found at ".. path ..". Setting background for cinnamon desktop")
 os.execute("gsettings set org.cinnamon.desktop.background picture-uri file:///" .. image_path) 
 cmd="gsettings"
 end
@@ -50,9 +71,17 @@ end
 path=filesys.find("dconf", process.getenv("PATH"))
 if strutil.strlen(path) > 0
 then
-print("deconf command found. Setting background for mate desktop")
+print("deconf command found at " .. path ..". Setting background for mate desktop")
 os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
 cmd="dconf"
+end
+
+path=filesys.find("xfconf-query", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("xfconf-query command found at " .. path .. ". Setting background for xfce4 desktop")
+XFCE4SetRoot(image_path)
+cmd="xfconf-query"
 end
 
 if strutil.strlen(cmd) == 0 then print("ERROR: no suitable command found to set root window background") end

@@ -22,7 +22,7 @@ SYNOPSIS
 
 wallpaper_mgr.lua is a program that downloads randomly selected images from a list of sites that offer desktop wallpapers, and uses a 'setroot' program to display these on the X11 root window. It requires libUseful (https://github.com/ColumPaget/libUseful) and libUseful-lua (https://github.com/ColumPaget/libUseful-lua) to be installed. 
 
-wallpaper_mgr.lua also tries to set the background on the gnome and mate desktops, using  the 'gsettings' or 'dconf' programs.
+wallpaper_mgr.lua also tries to set the background on the xfce4, gnome and mate desktops, using  the 'xfconf-query' 'gsettings' or 'dconf' programs.
 
 
 INSTALL
@@ -34,7 +34,9 @@ make
 make install
 ```
 
-This will create a script called "wallpaper_mgr.lua" and copy it to /usr/local/bin. This script can then be run with `lua wallpaper_mgr.lua` or you can use linux's "binfmt" system to automatically invoke lua to run lua scripts.
+This will create a script called "wallpaper_mgr.lua" and copy it to ~/bin. If you want to install to /usr/local/bin/ then run `make global-install`. Or you can copy "wallpaper_mgr.lua" manually to wherever you like.
+
+This script can then be run with `lua wallpaper_mgr.lua` or you can use linux's "binfmt" system to automatically invoke lua to run lua scripts.
 
 
 USAGE
@@ -70,9 +72,32 @@ options:
 ```
 
 
+DESKTOP ENVIRONMENTS, WINDOW MANAGERS, AND 'setroot' PROGRAMS
+=============================================================
+
 wallpaper_mgr.lua uses xrandr or 'xprop -root' to discover the size of the desktop, and downloads images close to that on sites that support multiple resolutions. If xrandr and xprop aren't available, and the user doesn't supply a resolution on the command line, then it defaults to 1920x1200.
 
-wallpaper_mgr.lua searches for one of the following programs: "feh, display (image magick), xli, qiv, wmsetbg, Esetroot, xv, setwallpaper, setroot" to use for setting the desktop wallpaper. Alternatively the user can specify a program using the '-setroot' option. Unfortunately this likely won't work on GNOME, KDE and Enlightenment desktop systems, which don't have good support for programmatically setting the wallpaper. wallpaper_mgr.lua attempts a 'hail mary' use of the gsettings app to set the wallpaper under GNOME, and also attempts to use the same for the Cinnamon desktop. If dconf is installed, wallpaper_mgr.lua will use that to set background for the MATE desktop (this has been seen to work). 'Esetroot' should work on enlightenment based desktops (but has been seen not to). It should work fine on systems that use a window-manager like jwm, or vtwm, etc.
+wallpaper_mgr.lua searches for one of the following programs: "feh, display (image magick), xli, qiv, wmsetbg, Esetroot, xv, setwallpaper, setroot" to use for setting the desktop wallpaper. Alternatively the user can specify a program using the '-setroot' option. Unfortunately this likely won't work on systems with a full desktop environment rather than window manager.
+
+
+
+GNOME##
+
+wallpaper_mgr.lua attempts a 'hail mary' use of the gsettings app to set the wallpaper under GNOME, and also attempts to use the same for the Cinnamon desktop. 
+
+MATE##
+
+If dconf is installed, wallpaper_mgr.lua will use that to set background for the MATE desktop (this has been seen to work). 
+
+ENLIGHTENMENT##
+'Esetroot' should work on enlightenment based desktops (but has been seen not to). It should work fine on systems that use a window-manager like jwm, or vtwm, etc.
+
+XFCE4##
+wallpaper_mgr.lua attempts a 'hail mary' use of the xconf-query app to set the wallpaper under XFCE4. It will set the background for *all* desktops that it can find.
+
+
+NETWORK IMAGE SOURCES
+=====================
 
 wallpaper_mgr.lua has a default list of sources consisting of:
 
@@ -81,8 +106,8 @@ wallpaper_mgr.lua has a default list of sources consisting of:
 This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'category' pages on each site.
 
 
-LOCAL SOURCES
-=============
+LOCAL IMAGE SOURCES
+===================
 
 There are three types of 'local sources' that wallpaper_mgr.lua supports.
 
