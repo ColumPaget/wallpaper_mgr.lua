@@ -9,7 +9,8 @@ mod.image_urls={}
 
 
 mod.get_image_details=function(self, page) 
-local S, str, html, best_res
+local S, str, html
+local best_res=""
 local title=""
 local url=""
 
@@ -34,7 +35,7 @@ tag=XML:next()
 end
 S:close()
 
-print("selected resolution: "..best_res.." url: "..url)
+print("selected resolution: "..tostring(best_res).." url: "..tostring(url))
 return url, title
 end
 

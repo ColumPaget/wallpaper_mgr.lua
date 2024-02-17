@@ -103,6 +103,7 @@ if strutil.strlen(settings.resolution) > 0 then return settings.resolution end
 resolution=self:xrandr_resolution()
 if strutil.strlen(resolution) == 0 then resolution=self:xwininfo_resolution() end
 if strutil.strlen(resolution) == 0 then resolution=self:xprop_resolution() end
+if strutil.strlen(resolution) == 0 then resolution="1280x1024" end
 
 return resolution
 end

@@ -11,7 +11,8 @@ mod.image_urls={}
 
 
 mod.select=function(self, items)
-local i, item, best_res
+local i, item
+local best_res=""
 local selected_items={}
 
 for i,item in ipairs(items)
@@ -26,7 +27,7 @@ if item.resolution == best_res then table.insert(selected_items, item) end
 end
 
 item=SelectRandomItem(selected_items)
-if item ~= nil then print("selected resolution: "..best_res.." url:"..item.url)
+if item ~= nil then print("selected resolution: "..tostring(best_res).." url:"..tostring(item.url))
 else print("fail: can't find image from chandra.harvard.edu")
 end
 

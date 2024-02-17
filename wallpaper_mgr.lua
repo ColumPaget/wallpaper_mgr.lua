@@ -537,7 +537,8 @@ mod.image_urls={}
 
 
 mod.select=function(self, items)
-local i, item, best_res
+local i, item
+local best_res=""
 local selected_items={}
 
 for i,item in ipairs(items)
@@ -552,7 +553,7 @@ if item.resolution == best_res then table.insert(selected_items, item) end
 end
 
 item=SelectRandomItem(selected_items)
-if item ~= nil then print("selected resolution: "..best_res.." url:"..item.url)
+if item ~= nil then print("selected resolution: "..tostring(best_res).." url:"..tostring(item.url))
 else print("fail: can't find image from chandra.harvard.edu")
 end
 
@@ -626,7 +627,8 @@ mod.image_urls={}
 
 
 mod.get_image_details=function(self, page) 
-local S, str, html, best_res
+local S, str, html
+local best_res=""
 local title=""
 local url=""
 
@@ -651,7 +653,7 @@ tag=XML:next()
 end
 S:close()
 
-print("selected resolution: "..best_res.." url: "..url)
+print("selected resolution: "..tostring(best_res).." url: "..tostring(url))
 return url, title
 end
 
@@ -879,7 +881,8 @@ end
 
 
 mod.get_image=function(self, page_url, source)
-local S, XML, tag, url, str, res, selected_res
+local S, XML, tag, url, str, res
+local selected_res=""
 
 if page_url==nil then return end
 
@@ -910,7 +913,7 @@ then
 	end
 end
 
-print("selected resolution: "..selected_res.." url: "..tostring(url))
+print("selected resolution: "..tostring(selected_res).." url: "..tostring(url))
 
 return url, title
 end
@@ -1213,7 +1216,7 @@ end
 
 function SetRoot(image_path)
 
-local programs={"hsetroot -cover", "bgs -z ", "feh --no-fehbg --bg-center --bg-fill", "xsetbg -fill", "display -window root -backdrop", "gm display -window root -backdrop", "imlibsetroot -p c -s ", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot"}
+local programs={"hsetroot -cover", "feh --no-fehbg --bg-center --bg-fill", "xsetbg -fill", "display -window root -backdrop", "gm display -window root -backdrop", "imlibsetroot -p c -s ", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot", "bgs -z "}
 local cmd, i, toks, item, str, path
 
 --try to detect if anything went wrong with getting the image
@@ -1449,6 +1452,7 @@ if strutil.strlen(settings.resolution) > 0 then return settings.resolution end
 resolution=self:xrandr_resolution()
 if strutil.strlen(resolution) == 0 then resolution=self:xwininfo_resolution() end
 if strutil.strlen(resolution) == 0 then resolution=self:xprop_resolution() end
+if strutil.strlen(resolution) == 0 then resolution="1280x1024" end
 
 return resolution
 end
