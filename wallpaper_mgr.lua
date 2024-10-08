@@ -6,6 +6,9 @@ require("filesys")
 require("hash")
 require("net")
 
+prog_version="2.5"
+
+
 function table_join(t1, t2)
 local i, item
 
@@ -92,7 +95,7 @@ function InitSettings()
 
 settings={}
 settings.working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
-settings.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes"
+settings.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "hdqwalls:nature", "hdqwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes"
 }
 --"chandra:dwarf", "chandra:snr", "chandra:quasars", "chandra:nstars",  "chandra:clusters", "chandra:bh"}
 
@@ -231,6 +234,7 @@ elseif string.sub(source, 1, 14)=="getwallpapers:" then obj=InitGetWallpapers()
 elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
 elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
+elseif string.sub(source, 1, 9)=="hdqwalls:" then obj=InitHDQWalls()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
 elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
 elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
@@ -340,10 +344,11 @@ end
 
 
 
-function HtmlTagExtractHRef(data, identifier) 
-local toks, tok, url, str
+function HtmlTagExtractHRef(data, identifier, fname) 
+local toks, tok, url, str, len
 local is_target=false
 
+if strutil.strlen(fname) == 0 then fname="href=" end
 if strutil.strlen(identifier) == 0 then is_target=true end
 
 str=data
@@ -352,9 +357,11 @@ tok=toks:next()
 while tok ~= nil
 do
 	if tok == identifier then is_target=true end
-	if string.sub(tok, 1, 5) == 'href='
+
+	len=strutil.strlen(fname)
+	if string.sub(tok, 1, len) == fname
 	then 
-	 url=strutil.stripQuotes(string.sub(tok, 6))
+	 url=strutil.stripQuotes(string.sub(tok, len+1))
 	end
 tok=toks:next()
 end
@@ -1096,6 +1103,89 @@ end
 
 return mod
 end
+
+function InitHDQWalls()
+local mod={}
+
+mod.pages={}
+
+
+mod.get_image=function(self, page)
+local S, html, XML, tag 
+local url=""
+local title=""
+
+if strutil.strlen(page) == 0 then return nil end
+S=stream.STREAM(page, "")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == "meta"
+	then
+		str=HtmlTagExtractHRef(tag.data, 'property="og:image"', "content=") 
+		if strutil.strlen(str) > 0 then url=str end
+
+		str=HtmlTagExtractHRef(tag.data, 'property="og:title"', "content=") 
+		if strutil.strlen(str) > 0 then title=str end
+	end
+	tag=XML:next()
+	end
+end
+
+return url, title
+end
+
+
+mod.get=function(self, source)
+local S, html, str, XML, category, len
+
+category=string.sub(source, 10)
+len=strutil.strlen(category)
+if string.sub(category, len - 10) ~= "-wallpapers" then category=category .. "-wallpapers" end
+
+str=string.format("https://hdqwalls.com/category/%s/page/%d", category, math.random(10))
+S=stream.STREAM(str, "")
+if S == nil or S:getvalue("HTTP:ResponseCode") ~= "200"
+then
+str=string.format("https://hdqwalls.com/category/%s-wallpapers", category)
+S=stream.STREAM(str, "")
+end
+
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == "div" and string.sub(tag.data, 1, 17) == "class=\"wall-resp "
+	then
+		
+		tag=XML:next()
+		if tag.type=="a"
+		then
+		str=HtmlTagExtractHRef(tag.data,"")
+		if str ~= nil then table.insert(self.pages, str) end
+		end
+	end
+	tag=XML:next()
+	end
+end
+
+str=SelectRandomItem(self.pages)
+return self:get_image(str)
+end
+
+return mod
+end
 -- pull images from wikimedia
 
 
@@ -1554,6 +1644,7 @@ end
 
 end
 function PrintHelp()
+local str, i, item
 
 print("")
 print("wallpaper_mgr.lua [options]")
@@ -1590,7 +1681,14 @@ print("-sources and +sources do not effect the default list, they only apply for
 print("")
 print("wallpaper_mgr.lua has a default list of sources consisting of:")
 print("")
-print("   'bing:en-US, bing:en-GB, nasa:apod, wallpapers13:cities-wallpapers, wallpapers13:nature-wallpapers/beach-wallpapers, wallpapers13:nature-wallpapers/waterfalls-wallpapers, wallpapers13:nature-wallpapers/flowers-wallpapers, wallpapers13:nature-wallpapers/sunset-wallpapers, wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers, wallpapers13:nature-wallpapers/landscapes-wallpapers, getwallpapers:ocean-scene-wallpaper, getwallpapers:nature-desktop-wallpapers-backgrounds, getwallpapers:milky-way-wallpaper-1920x1080, getwallpapers:1920x1080-hd-autumn-wallpapers, hipwallpapers:daily, suwalls:flowers, suwalls:beaches, suwalls:abstract, suwalls:nature, suwalls:space, chandra:stars, chandra:galaxy, esahubble:nebulae, esahubble:galaxies, esahubble:stars, esahubble:starclusters, wikimedia:Category:Commons_featured_desktop_backgrounds, wikimedia:Category:Hubble_images_of_galaxies, wikimedia:Category:Hubble_images_of_nebulae, wikimedia:wikimedia:User:Pfctdayelise/wallpapers, wikimedia:User:Miya/POTY/Nature_views2008, wikimedia:Lightning, wikimedia:Fog, wikimedia:Autumn, wikimedia:Sunset, wikimedia:Commons:Featured_pictures/Places/Other, wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors, wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes.")
+
+str=""
+for i,item in ipairs(settings.default_sources)
+do
+str=str .. item .. ", "
+end
+print(str)
+
 print("")
 print("This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'category' pages on each site.")
 print("")
@@ -1726,6 +1824,7 @@ then
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
+	elseif str=="--version" or str=="-version" then act="version"
 	else act="error"; print("unknown option '"..str.."'")
 	end
 end
@@ -1757,6 +1856,7 @@ act,target,src_url,source_list=ParseCommandLine()
 ProxySetup()
 
 if act=="help" then PrintHelp()
+elseif act=="version" then print("wallpaper_mgr version: " .. prog_version)
 elseif act=="random" then WallpaperFromRandomSource(source_list)
 elseif act=="info" then ShowCurrWallpaperDetails()
 elseif act=="title" then ShowCurrWallpaperTitle()

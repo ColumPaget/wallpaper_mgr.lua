@@ -122,6 +122,7 @@ then
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
+	elseif str=="--version" or str=="-version" then act="version"
 	else act="error"; print("unknown option '"..str.."'")
 	end
 end
@@ -153,6 +154,7 @@ act,target,src_url,source_list=ParseCommandLine()
 ProxySetup()
 
 if act=="help" then PrintHelp()
+elseif act=="version" then print("wallpaper_mgr version: " .. prog_version)
 elseif act=="random" then WallpaperFromRandomSource(source_list)
 elseif act=="info" then ShowCurrWallpaperDetails()
 elseif act=="title" then ShowCurrWallpaperTitle()

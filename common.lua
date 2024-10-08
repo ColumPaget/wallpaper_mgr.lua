@@ -6,6 +6,9 @@ require("filesys")
 require("hash")
 require("net")
 
+prog_version="2.5"
+
+
 function table_join(t1, t2)
 local i, item
 

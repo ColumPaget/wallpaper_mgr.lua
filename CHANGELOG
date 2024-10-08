@@ -1,0 +1,41 @@
+v2.8 (2024-10-08) 
+ * added hdqwalls.com to sources
+ * print actual default souces list
+ * minor fixes for crash if can't get resolution
+
+v2.7 (2023-12-21)
+  * xfce4 support
+
+v2.6 (2023-04-26)
+  * don't apply content-type checks to non http connections
+  * add proxy support
+  * try not to set background if download fails
+
+v2.5 (2023-02-19)
+  * added +sources command
+  * cinnamon desktop support
+
+v2.4 (2023-01-24)
+  * support mate desktop
+
+v2.3 (2022-10-28)
+  * recurse into 'favorites' directories and their subdirectories
+  * add bgs imlibsetroot and xsetbg background setters
+  * improve image magick display. use xwininfo if available
+  * add -exe_path option
+
+v2.2 (2022-04-12)
+  * minor fix for failure to get item from chandra.harvard.edu
+  * include -block command
+
+v2.1 (2022-03-03)
+  * handle blank command-line args (this can happen from crond)
+  * fix case where sources file exists, but is empty
+  * add hsetroot support
+  * add graphics magick support
+
+v2.0 (2022-02-18)
+  * added fave and save systems, improved wikimedia support
+
+v1.0 (2022-02-05)
+  * initial commit
