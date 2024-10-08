@@ -95,7 +95,7 @@ function InitSettings()
 
 settings={}
 settings.working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
-settings.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "hdqwalls:nature", "hdqwalls:space", "chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes"
+settings.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "hdqwalls:nature", "hdqwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space","chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes"
 }
 --"chandra:dwarf", "chandra:snr", "chandra:quasars", "chandra:nstars",  "chandra:clusters", "chandra:bh"}
 
@@ -232,6 +232,7 @@ elseif string.sub(source, 1, 10)=="esahubble:" then obj=InitESAHubble()
 elseif string.sub(source, 1, 13)=="wallpapers13:" then obj=InitWallpapers13()
 elseif string.sub(source, 1, 14)=="getwallpapers:" then obj=InitGetWallpapers()
 elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
+elseif string.sub(source, 1, 16)=="wallpaperscraft:" then obj=InitWallpapersCraft()
 elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
 elseif string.sub(source, 1, 9)=="hdqwalls:" then obj=InitHDQWalls()
@@ -1182,6 +1183,86 @@ end
 
 str=SelectRandomItem(self.pages)
 return self:get_image(str)
+end
+
+return mod
+end
+
+function InitWallpapersCraft()
+local mod={}
+
+mod.pages={}
+
+
+mod.get_image=function(self, page)
+local S, html, XML, tag 
+local url=""
+local title=""
+
+if strutil.strlen(page) == 0 then return nil end
+S=stream.STREAM(page, "")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+  	  if tag.type == "img"
+	  then
+	    str=HtmlTagExtractHRef(tag.data, 'class="wallpaper__image"', "src=") 
+	    if strutil.strlen(str) > 0 then url=str end
+	  elseif tag.type == "title"
+	  then
+	    tag=XML:next()
+	    title=tag.data
+	  end
+	tag=XML:next()
+	end
+end
+
+return url, title
+end
+
+
+mod.get=function(self, source)
+local S, html, str, XML, category, len
+
+category=string.sub(source, 17)
+
+str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080/page%d", category, math.random(100))
+print(str)
+S=stream.STREAM(str, "")
+
+if S == nil or S:getvalue("HTTP:ResponseCode") ~= "200"
+then
+str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080", category)
+S=stream.STREAM(str, "")
+end
+
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type == "a" and string.sub(tag.data, 1, 24) == 'class="wallpapers__link"'
+	then
+		
+		str=HtmlTagExtractHRef(tag.data,"")
+		if str ~= nil then table.insert(self.pages, str) end
+	end
+	tag=XML:next()
+	end
+end
+
+str=SelectRandomItem(self.pages)
+return self:get_image("https://wallpaperscraft.com/" .. str)
 end
 
 return mod

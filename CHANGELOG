@@ -1,4 +1,6 @@
+
 v2.8 (2024-10-08) 
+ * added wallpaperscraft.com to sources
  * added hdqwalls.com to sources
  * print actual default souces list
  * minor fixes for crash if can't get resolution
