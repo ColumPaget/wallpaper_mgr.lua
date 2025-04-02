@@ -6,7 +6,7 @@ require("filesys")
 require("hash")
 require("net")
 
-prog_version="2.8"
+prog_version="2.9"
 
 
 function table_join(t1, t2)
@@ -239,6 +239,7 @@ elseif string.sub(source, 1, 9)=="hdqwalls:" then obj=InitHDQWalls()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
 elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
 elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
+elseif string.sub(source, 1, 4)=="ssh:" then obj=InitSSH()
 end
 
 return obj
@@ -1362,6 +1363,59 @@ end
 
 return mod
 end
+-- module to download the current daily astronomy picture from apod.nasa.gov
+
+
+function InitSSH()
+local mod={}
+
+
+mod.readdir=function(self, source, url_list, dir_list)
+local line, extn, path
+local S
+
+S=stream.STREAM(source.."/*", "l")
+if S ~= nil
+then
+	line=S:readln()
+	while line ~= nil
+	do
+	line=strutil.trim(line)
+  extn=filesys.extn(line)
+	extn=string.lower(extn)
+	path=source.."/"..filesys.basename(line)
+	if extn ~= nil and (extn==".jpeg" or extn==".jpg" or extn==".png")
+	then
+    table.insert(url_list, path)
+  elseif dir_list ~= nil
+	then
+	  table.insert(dir_list, path)
+	end
+	line=S:readln()
+	end
+
+S:close()
+end
+
+end
+
+
+mod.get=function(self, source)
+local url_list={}
+local dir_list={}
+local str
+
+self:readdir(source, url_list)
+str=source .."/*"
+self:readdir(str, url_list)
+
+return SelectRandomItem(url_list)
+end
+
+
+return mod
+end
+
 
 function XFCE4SetRoot(image_path)
 local S, str, prop_name
@@ -1773,7 +1827,13 @@ print(str)
 print("")
 print("This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'category' pages on each site.")
 print("")
-print("either using the -proxy command or setting the PROXY_SERVER environment variable allows setting a proxy server to use. Proxy server urls can be of the form:")
+print("wallpapers can be pulled from a local directory with a source of the format 'local:<dir>'.");
+print("wallpapers can be pull from previously saved 'faves' with a source of the format 'faves:<name>' (where 'name' is the category/collection-name).");
+print("wallpapers selected from a 'playlist file' of urls using a source of the format 'playlist:<path>' where 'path' points to a file containing a list of urls.");
+print("")
+print("Wallpapers can be pulled from an ssh server using a source of the form: 'ssh:<host>/<path>'. 'host' must be an entry configured in the '~/.ssh/config' file and 'path' is a file path from the login directory. wallpaper_mgr will search in 'path' and one level of subfolders of 'path' for files ending in .jpeg, .jpg or .png, and picks one at random to use as wallpaper.")
+print("")
+print("Using either the -proxy command or setting the PROXY_SERVER environment variable allows setting a proxy server to use. Proxy server urls can be of the form:")
 print("   https:<username>:<password>@<host>:<port>")
 print("   socks:<username>:<password>@<host>:<port>")
 print("   sshtunnel:<ssh host>")

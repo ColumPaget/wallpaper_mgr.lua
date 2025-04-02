@@ -78,6 +78,7 @@ elseif string.sub(source, 1, 9)=="hdqwalls:" then obj=InitHDQWalls()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
 elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
 elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
+elseif string.sub(source, 1, 4)=="ssh:" then obj=InitSSH()
 end
 
 return obj

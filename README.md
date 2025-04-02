@@ -5,6 +5,7 @@ wallpaper_mgr.lua, libUseful-lua and libUseful are (C) 2022 Colum Paget. They ar
 
 Email: colums.projects@gmail.com
 
+
 DISCLAIMER
 ==========
 
@@ -143,6 +144,19 @@ wallpaper_mgr.lua has a default list of sources consisting of:
   * wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes.
 
 This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'category' pages on each site.
+
+
+
+SSH SOURCES
+===========
+
+wallpaper_mgr supports pulling wallpapers from directories over ssh. A source of the form `ssh:<host>/<path>` will cause wallpaper_mgr to connect and look for files ending in .jpg, .jpeg or .png within 'path' or *one level down* from path. The 'host' is expected to be a host entry set up in the `~/.ssh/config file`, and supplied with an identity key so that no manually entered password is required. For example the command:
+
+```
+wallpaper_mgr.lua -sources ssh:myserver/wallpaper
+```
+
+Will connect using the config for 'myserver' in the `~/.ssh/config` file and search for files in the 'wallpaper' folder and subfolders of it, but not subfolders of those subfolders.
 
 
 LOCAL IMAGE SOURCES
