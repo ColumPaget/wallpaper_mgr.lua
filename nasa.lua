@@ -39,7 +39,9 @@ local S, XML, tag, str, html
 local url=""
 local title=""
 
-S=stream.STREAM("https://apod.nasa.gov/apod/astropix.html","r")
+str="https://apod.nasa.gov/apod/astropix.html"
+print("GET: "..str)
+S=stream.STREAM(str, "r")
 if S ~= nil
 then
 	html=S:readdoc()

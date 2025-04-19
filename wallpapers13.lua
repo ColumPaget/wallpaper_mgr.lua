@@ -43,24 +43,6 @@ return ""
 end
 
 
-mod.extract_resolution=function(self, url)
-local toks, item, next_item, pos
-
-toks=strutil.TOKENIZER(url, "-")
-item=toks:next()
-while item ~= nil
-do
-next_item=toks:next()
-if strutil.strlen(next_item)==0 then break end
-item=next_item
-end
-
-if item==nil then return "" end
-pos=string.find(item, '%.')
-if pos < 4 then return "" end
-return string.sub(item, 1,  pos-1)
-end
-
 
 mod.find_image=function(self, XML)
 local tag, url
@@ -89,6 +71,7 @@ local selected_res=""
 
 if page_url==nil then return end
 
+print("GET: "..page_url)
 S=stream.STREAM(page_url, "r")
 if S ~= nil
 then
@@ -104,19 +87,13 @@ then
 	elseif tag.type == "a" 
 	then 
 		str=self:extract_url(tag.data) 
-		if string.find(str, ".jpg") ~= nil
-		then
-				res=self:extract_resolution(str)
-				if resolution:select(res) == true then url=str; selected_res=res end
-		end
+		if string.find(str, ".jpg") ~= nil then url=str end
 	end
 	if tag.type == "/tag" then break end
 
 	tag=XML:next()
 	end
 end
-
-print("selected resolution: "..tostring(selected_res).." url: "..tostring(url))
 
 return url, title
 end
@@ -127,10 +104,13 @@ local S, XML, html, tag, url="https://www.wallpapers13.com/category/cities-wallp
 
 if strutil.strlen(source)
 then
-	if string.sub(source, 1, 13) == "wallpapers13:" then url="https://www.wallpapers13.com/category/"..string.sub(source, 14).."/" end
-	if string.sub(source, 1, 5) == "wp13:" then url="https://www.wallpapers13.com/category/"..string.sub(source, 6).."/" end
+category=source_parse(source, "cities")
+len=strutil.strlen(category)
+if string.sub(category, len-11) ~= "-wallpapers" then category=category .. "-wallpapers" end
+url="https://www.wallpapers13.com/category/"..category.."/" 
 end
 
+print("GET: "..url)
 S=stream.STREAM(url, "r")
 if S ~= nil
 then

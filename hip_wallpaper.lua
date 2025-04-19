@@ -7,9 +7,13 @@ local mod={}
 mod.image_urls={}
 
 mod.get=function(self, source)
-local S, XML, tag, html
+local S, XML, tag, html, url, category
 
-S=stream.STREAM("https://hipwallpaper.com/daily-wallpapers/","r")
+category=source_parse(source, "nature")
+url="https://hipwallpaper.com/search?q="..category
+
+print("GET: "..url)
+S=stream.STREAM(url,"r")
 if S ~= nil
 then
 	html=S:readdoc()
@@ -21,7 +25,7 @@ then
 	do
 		if tag.type=="a" 
 		then 
-			url=HtmlTagExtractHRef(tag.data, 'class="btn btn-primary"')
+			url=HtmlTagExtractAttrib(tag.data, 'data-bs-src')
 			if strutil.strlen(url) > 0 then table.insert(self.image_urls, url) end
 		end
 		tag=XML:next()

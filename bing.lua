@@ -7,20 +7,21 @@ function InitBing()
 local mod={}
 
 
+mod.base_url="http://www.bing.com/"
 
 mod.get=function(self, source)
-local S, XML, tag, page_url, str
+local S, XML, tag, page_url, str, category
 local url=""
 local title=""
 local description=""
+local author=""
 
-page_url="http://www.bing.com/"
-if strutil.strlen(source) > 0
-then
-  if string.sub(source, 1, 5) == "bing:" then page_url=page_url..  "?mkt=" .. string.sub(source, 6) end
-end
+page_url=self.base_url
+category=source_parse(source,"")
+if strutil.strlen(category) > 0 then page_url=page_url..  "?mkt=" .. category end
 
-S=stream.STREAM(page_url,"r")
+print("GET: "..page_url)
+S=stream.STREAM(page_url, "r")
 if S ~= nil
 then
 	str=S:readdoc()
@@ -30,22 +31,22 @@ then
 	tag=XML:next()
 	while tag ~= nil
 	do
-		if tag.type=="link" 
+		if tag.type=="a" 
 		then 
-			str=HtmlTagExtractHRef(tag.data, 'id="preloadBg"')
-			if strutil.strlen(str) > 0 then url="http://www.bing.com" .. str end
-		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then description=XML:next().value
+			str=HtmlTagExtractAttrib(tag.data, 'class')
+			if str == "downloadLink " then url=self.base_url .. HtmlTagExtractAttrib(tag.data, 'href') 
+			elseif str== "title" then title=XML:next().data
+      end
+		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then description=XML:next().data
+		elseif tag.type=='div' and tag.data=='class="copyright" id="copyright"' then author=XML:next().data
 		-- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then title=XML:next().value
-		elseif tag.type=='a' 
-		then
-						if string.find(tag.data, 'class="title"') then title=XML:next().value end
 		end
 		tag=XML:next()
 	end
 
 end
 
-return url
+return url,title,description,author
 
 end
 

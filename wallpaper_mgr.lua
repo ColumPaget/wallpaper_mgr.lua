@@ -5,8 +5,27 @@ require("process")
 require("filesys")
 require("hash")
 require("net")
+require("dataparser")
 
-prog_version="2.9"
+prog_version="3.0"
+
+
+function source_parse(input, default_category)
+local toks, source, category
+
+if string.find(input, ":") ~= nil 
+then
+toks=strutil.TOKENIZER(input, ":")
+source=toks:next()
+category=toks:remaining()
+else
+category=input
+end
+
+if strutil.strlen(category) ==0 then category=default_category end
+
+return category, source
+end
 
 
 function table_join(t1, t2)
@@ -95,7 +114,8 @@ function InitSettings()
 
 settings={}
 settings.working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
-settings.default_sources={"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities-wallpapers", "wallpapers13:nature-wallpapers/beach-wallpapers", "wallpapers13:nature-wallpapers/waterfalls-wallpapers", "wallpapers13:nature-wallpapers/flowers-wallpapers", "wallpapers13:nature-wallpapers/sunset-wallpapers", "wallpapers13:other-topics-wallpapers/church-cathedral-wallpapers", "wallpapers13:nature-wallpapers/landscapes-wallpapers", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:daily", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "hdqwalls:nature", "hdqwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space","chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes"
+settings.default_sources={
+"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities", "wallpapers13:nature-wallpapers/beach", "wallpapers13:nature-wallpapers/waterfalls", "wallpapers13:nature-wallpapers/flowers", "wallpapers13:nature-wallpapers/sunset", "wallpapers13:other-topics-wallpapers/church-cathedral", "wallpapers13:nature-wallpapers/landscapes", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:nature", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "hdqwalls:nature", "hdqwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space","chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "esawebb:nebulae", "esawebb:galaxies", "esawebb:stars", "esawebb:solarsystem","wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes","wallpaperaccess:nature","wallpaperaccess:kereta-api","wallpaperaccess:city", "wallpaperaccess:universe-full-hd-pc", "wallpaperaccess:4k-architecture", "wallpaperaccess:space", "wallpaperaccess:china-sea","wallpaperaccess:mountains", "wallpaperaccess:china-mountains", "esa:earth"
 }
 --"chandra:dwarf", "chandra:snr", "chandra:quasars", "chandra:nstars",  "chandra:clusters", "chandra:bh"}
 
@@ -228,12 +248,16 @@ local obj
 if string.sub(source, 1, 5)=="bing:" then obj=InitBing()
 elseif string.sub(source, 1, 5)=="nasa:" then obj=InitNASA()
 elseif string.sub(source, 1, 8)=="chandra:" then obj=InitChandra()
-elseif string.sub(source, 1, 10)=="esahubble:" then obj=InitESAHubble()
+elseif string.sub(source, 1, 4)=="esa:" then obj=InitESA("https://esa.int")
+elseif string.sub(source, 1, 10)=="esahubble:" then obj=InitESA("https://esahubble.org")
+elseif string.sub(source, 1, 8)=="esawebb:" then obj=InitESA("https://esawebb.org")
 elseif string.sub(source, 1, 13)=="wallpapers13:" then obj=InitWallpapers13()
 elseif string.sub(source, 1, 14)=="getwallpapers:" then obj=InitGetWallpapers()
+elseif string.sub(source, 1, 13)=="hipwallpaper:" then obj=InitHipWallpaper()
 elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
-elseif string.sub(source, 1, 16)=="wallpaperscraft:" then obj=InitWallpapersCraft()
+elseif string.sub(source, 1, 16)=="wallpaperaccess:" then obj=InitWallpaperAccess()
 elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
+elseif string.sub(source, 1, 16)=="wallpaperscraft:" then obj=InitWallpapersCraft()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
 elseif string.sub(source, 1, 9)=="hdqwalls:" then obj=InitHDQWalls()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
@@ -345,12 +369,12 @@ end
 
 
 
-
-function HtmlTagExtractHRef(data, identifier, fname) 
-local toks, tok, url, str, len
+function HtmlTagExtractAttrib(data, attrib, identifier) 
+local toks, tok, value, str, len
 local is_target=false
 
-if strutil.strlen(fname) == 0 then fname="href=" end
+-- include '=' in attrib name, and then we can't match 'href=' with 'hrefwhatever' 
+attrib=attrib .. "="
 if strutil.strlen(identifier) == 0 then is_target=true end
 
 str=data
@@ -360,18 +384,26 @@ while tok ~= nil
 do
 	if tok == identifier then is_target=true end
 
-	len=strutil.strlen(fname)
-	if string.sub(tok, 1, len) == fname
+	len=strutil.strlen(attrib)
+	if string.sub(tok, 1, len) == attrib
 	then 
-	 url=strutil.stripQuotes(string.sub(tok, len+1))
+	 value=strutil.stripQuotes(string.sub(tok, len+1))
 	end
 tok=toks:next()
 end
 
-if is_target == true then return url end
+if is_target == true then return(value) end
 return("")
 end
 
+
+
+function HtmlTagExtractHRef(data, identifier, fname) 
+
+if strutil.strlen(fname) == 0 then fname="href" end
+
+return HtmlTagExtractAttrib(data, fname, identifier)
+end
 
 
 -- module to get daily wallpaper from bing.com
@@ -416,20 +448,21 @@ function InitBing()
 local mod={}
 
 
+mod.base_url="http://www.bing.com/"
 
 mod.get=function(self, source)
-local S, XML, tag, page_url, str
+local S, XML, tag, page_url, str, category
 local url=""
 local title=""
 local description=""
+local author=""
 
-page_url="http://www.bing.com/"
-if strutil.strlen(source) > 0
-then
-  if string.sub(source, 1, 5) == "bing:" then page_url=page_url..  "?mkt=" .. string.sub(source, 6) end
-end
+page_url=self.base_url
+category=source_parse(source,"")
+if strutil.strlen(category) > 0 then page_url=page_url..  "?mkt=" .. category end
 
-S=stream.STREAM(page_url,"r")
+print("GET: "..page_url)
+S=stream.STREAM(page_url, "r")
 if S ~= nil
 then
 	str=S:readdoc()
@@ -439,22 +472,22 @@ then
 	tag=XML:next()
 	while tag ~= nil
 	do
-		if tag.type=="link" 
+		if tag.type=="a" 
 		then 
-			str=HtmlTagExtractHRef(tag.data, 'id="preloadBg"')
-			if strutil.strlen(str) > 0 then url="http://www.bing.com" .. str end
-		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then description=XML:next().value
+			str=HtmlTagExtractAttrib(tag.data, 'class')
+			if str == "downloadLink " then url=self.base_url .. HtmlTagExtractAttrib(tag.data, 'href') 
+			elseif str== "title" then title=XML:next().data
+      end
+		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then description=XML:next().data
+		elseif tag.type=='div' and tag.data=='class="copyright" id="copyright"' then author=XML:next().data
 		-- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then title=XML:next().value
-		elseif tag.type=='a' 
-		then
-						if string.find(tag.data, 'class="title"') then title=XML:next().value end
 		end
 		tag=XML:next()
 	end
 
 end
 
-return url
+return url,title,description,author
 
 end
 
@@ -503,7 +536,9 @@ local S, XML, tag, str, html
 local url=""
 local title=""
 
-S=stream.STREAM("https://apod.nasa.gov/apod/astropix.html","r")
+str="https://apod.nasa.gov/apod/astropix.html"
+print("GET: "..str)
+S=stream.STREAM(str, "r")
 if S ~= nil
 then
 	html=S:readdoc()
@@ -533,6 +568,244 @@ end
 return mod
 end
 
+
+
+function InitESA(base_url)
+local mod={}
+
+mod.base_url=base_url
+mod.images={}
+
+
+mod.get_image_details=function(self, page)
+local S, str, html
+local best_res=""
+local title=""
+local url=""
+
+
+S=stream.STREAM(page, "")
+html=S:readdoc()
+XML=xml.XML(html)
+tag=XML:next()
+while tag ~= nil
+do
+if tag.type == 'title'
+then
+  tag=XML:next()
+  title=tag.data
+elseif tag.type == 'a'
+then
+  str=HtmlTagExtractHRef(tag.data, "")
+  tag=XML:next()
+  if resolution:select(tag.data) == true then url=str; best_res=tag.data end
+end
+tag=XML:next()
+end
+S:close()
+
+print("selected resolution: "..tostring(best_res).." url: "..tostring(url))
+return url, title
+end
+
+
+
+
+-- this reads scripts on the webpage looking for one that
+-- starts with "var images = ["
+-- that script is mostly a big JSON array of image info objects
+mod.hubwebb_read_script=function(self, script)
+local JSON, array, item, img
+
+if script == nil then return end
+
+if string.sub(script, 1, 12) == "var images ="
+then
+
+  -- clip off 'var images =' to give us a JSON array of image data
+  JSON=dataparser.PARSER("json", string.sub(script, 13))
+  array=JSON:next()
+  item=array:next()
+  while item ~= nil
+  do
+
+  str=item:value("url")
+  if strutil.strlen(str) > 0
+  then 
+  img={}
+  img.url=self.base_url .. str
+  img.id=item:value("id")
+  img.title=item:value("title")
+  img.width=item:value("width")
+  img.height=item:value("width")
+  table.insert(self.images, img)
+  end
+  item=array:next()
+  end
+
+end
+
+return nil
+end
+
+
+
+
+
+mod.hubwebb_open_page=function(self, category, max_page)
+local page, url, S
+
+page=math.random() 
+
+page=page * max_page
+page=page + 1 -- pages start at 1, not zero
+
+	if strutil.strlen(category) > 0
+	then
+	-- https://esahubble.org/images/archive/category/galaxies/page/3/
+	url=self.base_url .. "/images/archive/category/".. category .. "/page/"..string.format("%d", math.floor(page)).."/"
+	else
+	url=self.base_url .. "/images/" .. "/page/"..string.format("%d", math.floor(page)).."/"
+	end
+
+print("GET: "..url)
+	S=stream.STREAM(url, "r")
+	if S == nil then return nil end
+	if S:getvalue("HTTP:ResponseCode") ~= "200"
+	then
+	S:close()
+	return nil
+	end
+
+	return S
+end
+
+
+mod.hubwebb_get=function(self, source)
+local S, html, XML, tag, item, url, category
+local max_page=10
+
+category=source_parse(source, "stars")
+S=self:hubwebb_open_page(category, max_page)
+if S == nil then S=self:hubwebb_open_page(category, 1) end
+
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	  if tag.type == "script" then self:hubwebb_read_script(XML:next().data) end
+	  tag=XML:next()
+	end
+end
+
+item=SelectRandomItem(self.images)
+if item == nil then return nil end
+
+return self:get_image_details(item.url)
+end
+
+
+mod.esa_extract_image=function(self, img_data, XML)
+local img, tag
+
+	--first extract url of image file
+	img={}
+	img.url=HtmlTagExtractAttrib(img_data, "src")
+
+  -- now we look through remaining tags for an image title
+  -- if we hit '</tr>' then we're at the end of stuff relating 
+  -- to this image
+	tag=XML:next()
+	while tag ~= nil and tag.type ~= "/tr"
+	do
+		if tag.type=="a"
+		then
+			tag=XML:next()
+			img.title=tag.data
+		end
+	tag=XML:next()
+	end
+
+return img
+end
+
+
+mod.esa_read_article=function(self, XML) 
+local tag, str, width, img
+
+tag=XML:next()
+while tag ~= nil
+do
+	if tag.type == "img"
+	then
+	--some esa earth observation images are very low resolution
+  --and do not make good backgrounds. Fortunately they are tagged with a 'width' value of 60
+  --which makes them distinguishable from higher-res images that have a width of 100
+  --other esa image galleries don't have this width value, and so if width is nil we can also use the image
+  	width=HtmlTagExtractAttrib(tag.data, "width")
+    if width==nil or tonumber(width) > 60
+    then
+    	img=self:esa_extract_image(tag.data, XML)
+    	table.insert(self.images, img)
+  	end
+  end
+tag=XML:next()
+end
+	
+end
+
+
+mod.esa_get=function(self, category)
+local S, html, XML, tag, item, url
+
+
+-- there is only 'esa:earth'
+--[[
+pos=string.find(category, ':')
+if pos ~= nil then category=string.sub(category, pos+1) end
+
+if category == "earth" then url=self.base_url .. "/Applications/Observing_the_Earth/Image_archive"
+end
+]]--
+
+url=self.base_url .. "/Applications/Observing_the_Earth/Image_archive"
+
+print("GET: "..url)
+S=stream.STREAM(url, "")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	  if tag.type == "div" and tag.data == "class=\"article__block\"" then self:esa_read_article(XML) end
+	  tag=XML:next()
+	end
+end
+
+item=SelectRandomItem(self.images)
+if item == nil then return nil end
+
+return item.url, item.title
+end
+
+
+
+if mod.base_url == "https://esawebb.org" then mod.get=mod.hubwebb_get
+elseif mod.base_url == "https://esahubble.org" then mod.get=mod.hubwebb_get
+else mod.get=mod.esa_get
+end
+
+return mod
+end
 
 --get images from chandra observatory webpage
 
@@ -576,11 +849,10 @@ local S, XML, str, html, item
 local title=""
 local images={}
 
+category=source_parse(source, "galaxy")
+str="https://chandra.harvard.edu/resources/desktops_" .. category .. ".html"
 
-if strutil.strlen(source) > 0 then str="https://chandra.harvard.edu/resources/desktops_" .. string.sub(source, 9) .. ".html"
-else str="https://chandra.harvard.edu/resources/desktops_galaxy.html"
-end
-
+print("GET: "..str)
 S=stream.STREAM(str, "r")
 if S ~= nil
 then
@@ -625,96 +897,6 @@ end
 
 return mod
 end
-
---get images from ESA Hubble page
-
-
-function InitESAHubble()
-local mod={}
-
-mod.image_urls={}
-
-
-mod.get_image_details=function(self, page) 
-local S, str, html
-local best_res=""
-local title=""
-local url=""
-
-
-S=stream.STREAM(page, "")
-html=S:readdoc()
-XML=xml.XML(html)
-tag=XML:next()
-while tag ~= nil
-do
-if tag.type == 'title'
-then
-	tag=XML:next()
-	title=tag.data
-elseif tag.type == 'a'
-then
-	str=HtmlTagExtractHRef(tag.data, "")
-	tag=XML:next()
-	if resolution:select(tag.data) == true then url=str; best_res=tag.data end
-end
-tag=XML:next()
-end
-S:close()
-
-print("selected resolution: "..tostring(best_res).." url: "..tostring(url))
-return url, title
-end
-
-
-mod.get_images_links=function(self, S) 
-local str
-local pages={}
-
-str=S:readln()
-while str ~= nil
-do
-	str=strutil.trim(str)
-	if string.sub(str, 1,  14) == "url: '/images/"
-	then
-		str=string.sub(str, 5, string.len(str)-1)
-		table.insert(pages, str)
-	end
-  str=S:readln()
-end
-
-str=SelectRandomItem(pages)
-return self:get_image_details("https://esahubble.org" .. strutil.stripQuotes(str))
-end
-
-
-mod.get=function(self, source)
-local S, str
-local url=""
-local title=""
-
-if strutil.strlen(source) > 0 
-then
-str="https://esahubble.org/images/archive/category/"..string.sub(source, 11) .. "/page/1/"
-else
-str="https://esahubble.org/images/archive/category/nebulae/page/1/"
-end
-
-print(str)
-S=stream.STREAM(str, "r")
-str=S:readln()
-while str ~= nil
-do
-str=strutil.trim(str)
-if str=="var images = [" then url,title=mod:get_images_links(S) end
-str=S:readln()
-end
-
-return url,title
-end
-
-return mod
-end
 -- module to select a random wallpaper from https://hipwallpaper.com/daily-wallpapers/
 
 
@@ -724,9 +906,13 @@ local mod={}
 mod.image_urls={}
 
 mod.get=function(self, source)
-local S, XML, tag, html
+local S, XML, tag, html, url, category
 
-S=stream.STREAM("https://hipwallpaper.com/daily-wallpapers/","r")
+category=source_parse(source, "nature")
+url="https://hipwallpaper.com/search?q="..category
+
+print("GET: "..url)
+S=stream.STREAM(url,"r")
 if S ~= nil
 then
 	html=S:readdoc()
@@ -738,7 +924,7 @@ then
 	do
 		if tag.type=="a" 
 		then 
-			url=HtmlTagExtractHRef(tag.data, 'class="btn btn-primary"')
+			url=HtmlTagExtractAttrib(tag.data, 'data-bs-src')
 			if strutil.strlen(url) > 0 then table.insert(self.image_urls, url) end
 		end
 		tag=XML:next()
@@ -767,6 +953,9 @@ mod.get=function(self, source)
 local item, path, str, GLOB, len
 
 path=filesys.pathaddslash(self.root_dir..string.sub(source, 7))
+
+print("GET: "..path)
+
 GLOB=filesys.GLOB(path.."*")
 item=GLOB:next()
 while item ~= nil
@@ -849,24 +1038,6 @@ return ""
 end
 
 
-mod.extract_resolution=function(self, url)
-local toks, item, next_item, pos
-
-toks=strutil.TOKENIZER(url, "-")
-item=toks:next()
-while item ~= nil
-do
-next_item=toks:next()
-if strutil.strlen(next_item)==0 then break end
-item=next_item
-end
-
-if item==nil then return "" end
-pos=string.find(item, '%.')
-if pos < 4 then return "" end
-return string.sub(item, 1,  pos-1)
-end
-
 
 mod.find_image=function(self, XML)
 local tag, url
@@ -895,6 +1066,7 @@ local selected_res=""
 
 if page_url==nil then return end
 
+print("GET: "..page_url)
 S=stream.STREAM(page_url, "r")
 if S ~= nil
 then
@@ -910,19 +1082,13 @@ then
 	elseif tag.type == "a" 
 	then 
 		str=self:extract_url(tag.data) 
-		if string.find(str, ".jpg") ~= nil
-		then
-				res=self:extract_resolution(str)
-				if resolution:select(res) == true then url=str; selected_res=res end
-		end
+		if string.find(str, ".jpg") ~= nil then url=str end
 	end
 	if tag.type == "/tag" then break end
 
 	tag=XML:next()
 	end
 end
-
-print("selected resolution: "..tostring(selected_res).." url: "..tostring(url))
 
 return url, title
 end
@@ -933,10 +1099,13 @@ local S, XML, html, tag, url="https://www.wallpapers13.com/category/cities-wallp
 
 if strutil.strlen(source)
 then
-	if string.sub(source, 1, 13) == "wallpapers13:" then url="https://www.wallpapers13.com/category/"..string.sub(source, 14).."/" end
-	if string.sub(source, 1, 5) == "wp13:" then url="https://www.wallpapers13.com/category/"..string.sub(source, 6).."/" end
+category=source_parse(source, "cities")
+len=strutil.strlen(category)
+if string.sub(category, len-11) ~= "-wallpapers" then category=category .. "-wallpapers" end
+url="https://www.wallpapers13.com/category/"..category.."/" 
 end
 
+print("GET: "..url)
 S=stream.STREAM(url, "r")
 if S ~= nil
 then
@@ -969,32 +1138,80 @@ end
 function InitGetWallpapers()
 local mod={}
 
+mod.base_url="https://getwallpapers.com/"
 mod.image_urls={}
 
 mod.div_tag=function(self, data) 
-local toks, tok, url
-local is_preload=false
+local str, url
 
-toks=strutil.TOKENIZER(data, "\\S")
-tok=toks:next()
-while tok ~= nil
-do
-if string.sub(tok, 1, 13) == 'data-fullimg=' then url=strutil.stripQuotes(string.sub(tok, 14)) end
-tok=toks:next()
+str=HtmlTagExtractAttrib(data, "data-fullimg")
+if strutil.strlen(str) > 0 
+then 
+url=self.base_url .. strutil.stripQuotes(str)
+table.insert(self.image_urls, url) 
 end
 
-if strutil.strlen(url) > 0 then table.insert(self.image_urls, "https://getwallpapers.com" ..  url) end
 end
 
 
 mod.get=function(self, source)
-local S, XML, tag, html, url="https://getwallpapers.com/collection/nature-desktop-wallpapers-backgrounds"
+local S, XML, tag, html, str
 
-if strutil.strlen(source) > 0
+str=source_parse(source, "nature-desktop-wallpapers-backgrounds")
+url=self.base_url .. "/collection/" .. str
+
+print("GET: "..url)
+S=stream.STREAM(url,"r")
+if S ~= nil
 then
-if string.sub(source, 1, 14)=="getwallpapers:" then url="https://getwallpapers.com/collection/"..string.sub(source, 15) end
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+		if tag.type=="div" then self:div_tag(tag.data) end
+		tag=XML:next()
+	end
 end
 
+return SelectRandomItem(self.image_urls)
+end
+
+
+return mod
+end
+
+-- module to download a random image from getwallpapers.com
+
+
+function InitWallpaperAccess()
+local mod={}
+
+mod.base_url="https://wallpaperaccess.com/"
+mod.image_urls={}
+
+
+mod.div_tag=function(self, data) 
+local url
+
+str=HtmlTagExtractAttrib(data, "data-fullimg")
+if strutil.strlen(str) > 0 
+then 
+table.insert(self.image_urls, self.base_url ..  str) 
+end
+
+end
+
+
+mod.get=function(self, source)
+local S, XML, tag, html, url, category
+
+category=source_parse(source, "nature")
+url=self.base_url..category
+
+print("GET: "..url)
 S=stream.STREAM(url,"r")
 if S ~= nil
 then
@@ -1076,8 +1293,11 @@ end
 mod.get=function(self, source)
 local S, html, str, XML, category
 
-category=string.sub(source, 9)
-S=stream.STREAM("https://suwalls.com/" .. category, "")
+category=source_parse(source, "nature")
+str="https://suwalls.com/" .. category
+print("GET: "..str)
+
+S=stream.STREAM(str, "")
 if S ~= nil
 then
 	html=S:readdoc()
@@ -1130,10 +1350,10 @@ then
 	do
 	if tag.type == "meta"
 	then
-		str=HtmlTagExtractHRef(tag.data, 'property="og:image"', "content=") 
+		str=HtmlTagExtractAttrib(tag.data, 'property="og:image"', "content") 
 		if strutil.strlen(str) > 0 then url=str end
 
-		str=HtmlTagExtractHRef(tag.data, 'property="og:title"', "content=") 
+		str=HtmlTagExtractAttrib(tag.data, 'property="og:title"', "content") 
 		if strutil.strlen(str) > 0 then title=str end
 	end
 	tag=XML:next()
@@ -1147,11 +1367,13 @@ end
 mod.get=function(self, source)
 local S, html, str, XML, category, len
 
-category=string.sub(source, 10)
+category=source_parse(source, "nature")
 len=strutil.strlen(category)
 if string.sub(category, len - 10) ~= "-wallpapers" then category=category .. "-wallpapers" end
 
 str=string.format("https://hdqwalls.com/category/%s/page/%d", category, math.random(10))
+
+print("GET: "..str)
 S=stream.STREAM(str, "")
 if S == nil or S:getvalue("HTTP:ResponseCode") ~= "200"
 then
@@ -1213,7 +1435,7 @@ then
 	do
   	  if tag.type == "img"
 	  then
-	    str=HtmlTagExtractHRef(tag.data, 'class="wallpaper__image"', "src=") 
+	    str=HtmlTagExtractHRef(tag.data, 'class="wallpaper__image"', "src") 
 	    if strutil.strlen(str) > 0 then url=str end
 	  elseif tag.type == "title"
 	  then
@@ -1231,10 +1453,10 @@ end
 mod.get=function(self, source)
 local S, html, str, XML, category, len
 
-category=string.sub(source, 17)
-
+category=source_parse(source, "cities")
 str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080/page%d", category, math.random(100))
-print(str)
+
+print("GET: ".. str)
 S=stream.STREAM(str, "")
 
 if S == nil or S:getvalue("HTTP:ResponseCode") ~= "200"
@@ -1274,15 +1496,18 @@ end
 function InitWikimedia()
 local mod={}
 
+
+mod.base_url="https://commons.wikimedia.org"
 mod.pages={}
 
 mod.get_image=function(self, page)
 local S, html, XML, str, tag
 local url=""
 
+print("GET: "..page)
 if strutil.strlen(page) > 0
 then
-S=stream.STREAM("https://commons.wikimedia.org/"..page)
+S=stream.STREAM(page)
 if S ~= nil
 then
 	html=S:readdoc()
@@ -1292,12 +1517,10 @@ then
 	tag=XML:next()
 	while tag ~= nil
 	do
-	if tag.type == 'a'
+	if tag.type == 'div' and tag.data == 'class="fullImageLink" id="file"'
 	then
-		str=HtmlTagExtractHRef(tag.data, '')
-		tag=XML:next()
-		if tag.data == "Original file" then url=str 
-		end
+	  tag=XML:next()
+		url=HtmlTagExtractHRef(tag.data)
 	end
 	tag=XML:next()
 	end
@@ -1312,7 +1535,11 @@ local S, html, XML, str, tag
 local next_page=""
 
 if strutil.strlen(page) ==0 then return nil end
-S=stream.STREAM("https://commons.wikimedia.org"..page)
+
+str="https://commons.wikimedia.org"..page
+print("GET: "..str)
+
+S=stream.STREAM(str, "r")
 if S ~= nil
 then
 	html=S:readdoc()
@@ -1324,16 +1551,8 @@ then
 	do
 	if tag.type == 'a'
 	then
-		url=HtmlTagExtractHRef(tag.data, 'class="galleryfilename galleryfilename-truncate"')
-		if strutil.strlen(url) > 0 then table.insert(mod.pages, url) 
-		else
-			url=HtmlTagExtractHRef(tag.data, 'class="image"')
-			if strutil.strlen(url) > 0 then table.insert(mod.pages, url) 
-			else
-				url=HtmlTagExtractHRef(tag.data, '')
-				tag=XML:next()
-				if tag.data=="next page" then next_page=url end
-			end
+		url=HtmlTagExtractHRef(tag.data, 'class="mw-file-description"')
+		if strutil.strlen(url) > 0 then table.insert(mod.pages, self.base_url .. url) 
 		end
 	end
 	tag=XML:next()
@@ -1347,8 +1566,7 @@ end
 mod.get=function(self, source)
 local next_page, page
 
-page=string.sub(source, 11)
-if strutil.strlen(page) == 0 then page="Category:Commons_featured_desktop_backgrounds" end
+page=source_parse(source, "Category:Commons_featured_desktop_backgrounds")
 
 next_page=mod.get_page(self, "/wiki/".. page)
 while strutil.strlen(next_page) > 0
@@ -1363,6 +1581,8 @@ end
 
 return mod
 end
+
+
 -- module to download the current daily astronomy picture from apod.nasa.gov
 
 
@@ -1406,6 +1626,8 @@ local dir_list={}
 local str
 
 self:readdir(source, url_list)
+
+print("GET: "..source)
 str=source .."/*"
 self:readdir(str, url_list)
 
@@ -1527,7 +1749,7 @@ end
 
 
 
-function GetWallpaper(url, source, title, description) 
+function GetWallpaper(url, source, title, description, author) 
 local S, fname
 local result=false
 
@@ -1564,6 +1786,7 @@ then
 	  S:writeln("source: "..source.."\n")
 	  if strutil.strlen(title) > 0 then S:writeln("title: "..title.."\n") end
 	  if strutil.strlen(description) > 0 then S:writeln("description: "..description.."\n") end
+	  if strutil.strlen(author) > 0 then S:writeln("author: "..author.."\n") end
 	  S:close()
   end
 end
@@ -1787,6 +2010,7 @@ print("options:")
 print("  -sources <comma separated list of sources>       list of sources to get images from, overriding the default list.")
 print("  +sources <comma separated list of sources>       add sources to list (either add to default list, or a list supplied with -sources)")
 print("  -list                                            list default sources.")
+print("  -list-sources                                    list default sources.")
 print("  -add <source>                                    add a source to the list of default sources.")
 print("  -del <source>                                    remove an item from the list of default sources.")
 print("  -rm <source>                                     remove an item from the list of default sources.")
@@ -1852,11 +2076,11 @@ local result=false
 mod=sources:select(source)
 if mod ~= nil
 then 
-url,title,description=mod:get(source) 
+url,title,description,author=mod:get(source) 
 
 if strutil.strlen(url) > 0 
 then
-if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description) 
+if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description, author) 
 else print("BLOCKED: " .. url .. ". Never use this image.")
 end
 
@@ -1944,6 +2168,7 @@ then
 	elseif str=="-info" then act="info" 
 	elseif str=="-title" then act="title" 
 	elseif str=="-list" then act="list" 
+	elseif str=="-list-sources" then act="list" 
 	elseif str=="-add" then act="add" ; target=arg[i+1] ; arg[i+1]=""
 	elseif str=="-del" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
 	elseif str=="-rm" then act="remove" ; target=arg[i+1] ; arg[i+1]=""

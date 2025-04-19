@@ -23,7 +23,7 @@ then
 	do
   	  if tag.type == "img"
 	  then
-	    str=HtmlTagExtractHRef(tag.data, 'class="wallpaper__image"', "src=") 
+	    str=HtmlTagExtractHRef(tag.data, 'class="wallpaper__image"', "src") 
 	    if strutil.strlen(str) > 0 then url=str end
 	  elseif tag.type == "title"
 	  then
@@ -41,10 +41,10 @@ end
 mod.get=function(self, source)
 local S, html, str, XML, category, len
 
-category=string.sub(source, 17)
-
+category=source_parse(source, "cities")
 str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080/page%d", category, math.random(100))
-print(str)
+
+print("GET: ".. str)
 S=stream.STREAM(str, "")
 
 if S == nil or S:getvalue("HTTP:ResponseCode") ~= "200"

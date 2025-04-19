@@ -23,10 +23,10 @@ then
 	do
 	if tag.type == "meta"
 	then
-		str=HtmlTagExtractHRef(tag.data, 'property="og:image"', "content=") 
+		str=HtmlTagExtractAttrib(tag.data, 'property="og:image"', "content") 
 		if strutil.strlen(str) > 0 then url=str end
 
-		str=HtmlTagExtractHRef(tag.data, 'property="og:title"', "content=") 
+		str=HtmlTagExtractAttrib(tag.data, 'property="og:title"', "content") 
 		if strutil.strlen(str) > 0 then title=str end
 	end
 	tag=XML:next()
@@ -40,11 +40,13 @@ end
 mod.get=function(self, source)
 local S, html, str, XML, category, len
 
-category=string.sub(source, 10)
+category=source_parse(source, "nature")
 len=strutil.strlen(category)
 if string.sub(category, len - 10) ~= "-wallpapers" then category=category .. "-wallpapers" end
 
 str=string.format("https://hdqwalls.com/category/%s/page/%d", category, math.random(10))
+
+print("GET: "..str)
 S=stream.STREAM(str, "")
 if S == nil or S:getvalue("HTTP:ResponseCode") ~= "200"
 then

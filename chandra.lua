@@ -41,11 +41,10 @@ local S, XML, str, html, item
 local title=""
 local images={}
 
+category=source_parse(source, "galaxy")
+str="https://chandra.harvard.edu/resources/desktops_" .. category .. ".html"
 
-if strutil.strlen(source) > 0 then str="https://chandra.harvard.edu/resources/desktops_" .. string.sub(source, 9) .. ".html"
-else str="https://chandra.harvard.edu/resources/desktops_galaxy.html"
-end
-
+print("GET: "..str)
 S=stream.STREAM(str, "r")
 if S ~= nil
 then

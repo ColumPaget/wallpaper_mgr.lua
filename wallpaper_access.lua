@@ -1,30 +1,30 @@
 -- module to download a random image from getwallpapers.com
 
 
-function InitGetWallpapers()
+function InitWallpaperAccess()
 local mod={}
 
-mod.base_url="https://getwallpapers.com/"
+mod.base_url="https://wallpaperaccess.com/"
 mod.image_urls={}
 
+
 mod.div_tag=function(self, data) 
-local str, url
+local url
 
 str=HtmlTagExtractAttrib(data, "data-fullimg")
 if strutil.strlen(str) > 0 
 then 
-url=self.base_url .. strutil.stripQuotes(str)
-table.insert(self.image_urls, url) 
+table.insert(self.image_urls, self.base_url ..  str) 
 end
 
 end
 
 
 mod.get=function(self, source)
-local S, XML, tag, html, str
+local S, XML, tag, html, url, category
 
-str=source_parse(source, "nature-desktop-wallpapers-backgrounds")
-url=self.base_url .. "/collection/" .. str
+category=source_parse(source, "nature")
+url=self.base_url..category
 
 print("GET: "..url)
 S=stream.STREAM(url,"r")

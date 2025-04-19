@@ -41,6 +41,8 @@ local dir_list={}
 local str
 
 self:readdir(source, url_list)
+
+print("GET: "..source)
 str=source .."/*"
 self:readdir(str, url_list)
 

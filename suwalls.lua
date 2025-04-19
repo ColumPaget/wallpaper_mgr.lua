@@ -57,8 +57,11 @@ end
 mod.get=function(self, source)
 local S, html, str, XML, category
 
-category=string.sub(source, 9)
-S=stream.STREAM("https://suwalls.com/" .. category, "")
+category=source_parse(source, "nature")
+str="https://suwalls.com/" .. category
+print("GET: "..str)
+
+S=stream.STREAM(str, "")
 if S ~= nil
 then
 	html=S:readdoc()

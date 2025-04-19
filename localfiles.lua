@@ -13,6 +13,9 @@ mod.get=function(self, source)
 local item, path, str, GLOB, len
 
 path=filesys.pathaddslash(self.root_dir..string.sub(source, 7))
+
+print("GET: "..path)
+
 GLOB=filesys.GLOB(path.."*")
 item=GLOB:next()
 while item ~= nil

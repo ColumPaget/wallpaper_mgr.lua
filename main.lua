@@ -9,11 +9,11 @@ local result=false
 mod=sources:select(source)
 if mod ~= nil
 then 
-url,title,description=mod:get(source) 
+url,title,description,author=mod:get(source) 
 
 if strutil.strlen(url) > 0 
 then
-if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description) 
+if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description, author) 
 else print("BLOCKED: " .. url .. ". Never use this image.")
 end
 
@@ -101,6 +101,7 @@ then
 	elseif str=="-info" then act="info" 
 	elseif str=="-title" then act="title" 
 	elseif str=="-list" then act="list" 
+	elseif str=="-list-sources" then act="list" 
 	elseif str=="-add" then act="add" ; target=arg[i+1] ; arg[i+1]=""
 	elseif str=="-del" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
 	elseif str=="-rm" then act="remove" ; target=arg[i+1] ; arg[i+1]=""

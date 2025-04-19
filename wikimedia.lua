@@ -4,15 +4,18 @@
 function InitWikimedia()
 local mod={}
 
+
+mod.base_url="https://commons.wikimedia.org"
 mod.pages={}
 
 mod.get_image=function(self, page)
 local S, html, XML, str, tag
 local url=""
 
+print("GET: "..page)
 if strutil.strlen(page) > 0
 then
-S=stream.STREAM("https://commons.wikimedia.org/"..page)
+S=stream.STREAM(page)
 if S ~= nil
 then
 	html=S:readdoc()
@@ -22,12 +25,10 @@ then
 	tag=XML:next()
 	while tag ~= nil
 	do
-	if tag.type == 'a'
+	if tag.type == 'div' and tag.data == 'class="fullImageLink" id="file"'
 	then
-		str=HtmlTagExtractHRef(tag.data, '')
-		tag=XML:next()
-		if tag.data == "Original file" then url=str 
-		end
+	  tag=XML:next()
+		url=HtmlTagExtractHRef(tag.data)
 	end
 	tag=XML:next()
 	end
@@ -42,7 +43,11 @@ local S, html, XML, str, tag
 local next_page=""
 
 if strutil.strlen(page) ==0 then return nil end
-S=stream.STREAM("https://commons.wikimedia.org"..page)
+
+str="https://commons.wikimedia.org"..page
+print("GET: "..str)
+
+S=stream.STREAM(str, "r")
 if S ~= nil
 then
 	html=S:readdoc()
@@ -54,16 +59,8 @@ then
 	do
 	if tag.type == 'a'
 	then
-		url=HtmlTagExtractHRef(tag.data, 'class="galleryfilename galleryfilename-truncate"')
-		if strutil.strlen(url) > 0 then table.insert(mod.pages, url) 
-		else
-			url=HtmlTagExtractHRef(tag.data, 'class="image"')
-			if strutil.strlen(url) > 0 then table.insert(mod.pages, url) 
-			else
-				url=HtmlTagExtractHRef(tag.data, '')
-				tag=XML:next()
-				if tag.data=="next page" then next_page=url end
-			end
+		url=HtmlTagExtractHRef(tag.data, 'class="mw-file-description"')
+		if strutil.strlen(url) > 0 then table.insert(mod.pages, self.base_url .. url) 
 		end
 	end
 	tag=XML:next()
@@ -77,8 +74,7 @@ end
 mod.get=function(self, source)
 local next_page, page
 
-page=string.sub(source, 11)
-if strutil.strlen(page) == 0 then page="Category:Commons_featured_desktop_backgrounds" end
+page=source_parse(source, "Category:Commons_featured_desktop_backgrounds")
 
 next_page=mod.get_page(self, "/wiki/".. page)
 while strutil.strlen(next_page) > 0
@@ -93,3 +89,5 @@ end
 
 return mod
 end
+
+

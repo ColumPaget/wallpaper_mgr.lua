@@ -1,3 +1,13 @@
+v3.0 (2025-04-19)
+ * fix crash in wallpapers13 (pos can be nil if 'extract_resolution' fails)
+ * add 'esawebb:' and 'esa:earth' sources
+ * search more than 1st page of images in esawebb: and esahubble:
+ * add 'wallpaperaccess' source
+ * fix wallpapers13 no longer offers multiple resolutions
+ * fix wikimedia, site layout has changed
+ * fix bing, add 'author' value from bing
+ * make sure 'get' in all source modules at least prints 'GET: <url>' for top-level url so we can see whats happening
+
 v2.9 (2025-03-02)
  * support ssh: sources
 

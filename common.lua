@@ -5,8 +5,27 @@ require("process")
 require("filesys")
 require("hash")
 require("net")
+require("dataparser")
 
-prog_version="2.9"
+prog_version="3.0"
+
+
+function source_parse(input, default_category)
+local toks, source, category
+
+if string.find(input, ":") ~= nil 
+then
+toks=strutil.TOKENIZER(input, ":")
+source=toks:next()
+category=toks:remaining()
+else
+category=input
+end
+
+if strutil.strlen(category) ==0 then category=default_category end
+
+return category, source
+end
 
 
 function table_join(t1, t2)

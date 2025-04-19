@@ -19,7 +19,7 @@ end
 
 
 
-function GetWallpaper(url, source, title, description) 
+function GetWallpaper(url, source, title, description, author) 
 local S, fname
 local result=false
 
@@ -56,6 +56,7 @@ then
 	  S:writeln("source: "..source.."\n")
 	  if strutil.strlen(title) > 0 then S:writeln("title: "..title.."\n") end
 	  if strutil.strlen(description) > 0 then S:writeln("description: "..description.."\n") end
+	  if strutil.strlen(author) > 0 then S:writeln("author: "..author.."\n") end
 	  S:close()
   end
 end
