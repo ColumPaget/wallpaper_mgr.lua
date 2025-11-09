@@ -10,11 +10,7 @@ local mod={}
 mod.base_url="http://www.bing.com/"
 
 mod.get=function(self, source)
-local S, XML, tag, page_url, str, category
-local url=""
-local title=""
-local description=""
-local author=""
+local S, XML, tag, page_url, str, category, item
 
 page_url=self.base_url
 category=source_parse(source,"")
@@ -28,25 +24,28 @@ then
 	XML=xml.XML(str)
 	S:close()
 
+  item={}
+
 	tag=XML:next()
 	while tag ~= nil
 	do
 		if tag.type=="a" 
 		then 
 			str=HtmlTagExtractAttrib(tag.data, 'class')
-			if str == "downloadLink " then url=self.base_url .. HtmlTagExtractAttrib(tag.data, 'href') 
-			elseif str== "title" then title=XML:next().data
+			if str == "downloadLink " then item.url=self.base_url .. HtmlTagExtractAttrib(tag.data, 'href') 
+			elseif str== "title" then item.title=XML:next().data
       end
-		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then description=XML:next().data
-		elseif tag.type=='div' and tag.data=='class="copyright" id="copyright"' then author=XML:next().data
-		-- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then title=XML:next().value
+		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then item.description=XML:next().data
+		elseif tag.type=='div' and tag.data=='class="copyright" id="copyright"' then item.author=XML:next().data
+		-- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then item.title=XML:next().value
 		end
 		tag=XML:next()
 	end
 
+	print("ITEM: ".. tostring(item.url))
 end
 
-return url,title,description,author
+return item
 
 end
 

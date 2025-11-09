@@ -5,35 +5,6 @@
 function InitChandra()
 local mod={}
 
-mod.image_urls={}
-
-
-
-
-mod.select=function(self, items)
-local i, item
-local best_res=""
-local selected_items={}
-
-for i,item in ipairs(items)
-do
-if resolution:select(item.resolution) == true then best_res=item.resolution end
-end
-
-
-for i,item in ipairs(items)
-do 
-if item.resolution == best_res then table.insert(selected_items, item) end 
-end
-
-item=SelectRandomItem(selected_items)
-if item ~= nil then print("selected resolution: "..tostring(best_res).." url:"..tostring(item.url))
-else print("fail: can't find image from chandra.harvard.edu")
-end
-
-return item
-end
-
 
 
 mod.get=function(self, source)
@@ -70,7 +41,7 @@ then
 			if string.find(tag.data, ' ') == nil and string.find(tag.data, 'x') ~= nil
 			then
 			item={}
-			item.url=str
+      item.url="https://chandra.harvard.edu/" .. str
 			item.title=title
 			item.resolution=tag.data
 			table.insert(images, item)
@@ -82,9 +53,9 @@ then
 end
 
 
-item=self:select(images)
-if item==nil then return nil end
-return "https://chandra.harvard.edu/" .. item.url, item.title
+item=SelectResolutionItem(images)
+return item
+
 end
 
 return mod

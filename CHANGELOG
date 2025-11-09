@@ -1,3 +1,11 @@
+v3.2 (2025-11-10)
+ * support rox desktop
+ * support pcmanfm desktop
+ * add 2 more 'archive.org' wallpaper collections
+ * added 'eso.lua' for the European Southern Observatory
+ * removed non-functioning 'hdqwalls.lua' (site now requires javascript)
+ * removed non-functioning 'wallpaper_access.lua' (site access blocked by cloudflare)
+
 v3.1 (2025-11-09)
  * support icewm, spacefm and zzzfm desktops
  * add 'archive.org' wallpaper collection

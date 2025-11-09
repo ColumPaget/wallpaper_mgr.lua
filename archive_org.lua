@@ -1,5 +1,5 @@
 
---get images from chandra observatory webpage
+--get images from 'wallpaper collections' posted at archive.org
 
 
 function InitArchiveOrg()
@@ -10,11 +10,16 @@ mod.image_urls={}
 
 
 mod.get=function(self, source)
-local S, XML, str, html, item, root
-local title=""
+local S, XML, str, html, item, root, item
+local collection
 local images={}
 
-root="https://archive.org/download/wallpaperscollection"
+if strutil.strlen(source) ==0 then return nil end
+
+collection=source_parse(source, "wallpaperscollection")
+root="https://archive.org/download/" .. collection
+
+
 print("GET: "..root)
 S=stream.STREAM(root, "r")
 if S ~= nil
@@ -29,7 +34,7 @@ then
 	if tag.type=="a"
 	then 
 	  str=HtmlTagExtractHRef(tag.data, "")
-		if strutil.strlen(str) > 0  and filesys.extn(str)==".jpg" and string.find(str, "thumb") == nil
+		if strutil.strlen(str) > 0  and IsImageURL(str) == true and string.find(str, "thumb") == nil
 		then
 			table.insert(images, str)
 		end
@@ -39,12 +44,14 @@ then
 end
 
 
-item=SelectRandomItem(images)
-if item==nil then return nil end
+str=SelectRandomItem(images)
+if str ~= nil
+then
+item={}
+item.url=root .. "/" .. str
+end
 
-return root .. "/" .. item
-
-
+return item
 end
 
 return mod

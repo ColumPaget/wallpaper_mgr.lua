@@ -87,7 +87,7 @@ then
 	elseif tag.type == "a" 
 	then 
 		str=self:extract_url(tag.data) 
-		if string.find(str, ".jpg") ~= nil then url=str end
+		if IsImageURL(str) == true then url=str end
 	end
 	if tag.type == "/tag" then break end
 
@@ -100,7 +100,8 @@ end
 
 
 mod.get=function(self, source)
-local S, XML, html, tag, url="https://www.wallpapers13.com/category/cities-wallpapers"
+local S, XML, html, tag, item
+local url="https://www.wallpapers13.com/category/cities-wallpapers"
 
 if strutil.strlen(source)
 then
@@ -130,8 +131,13 @@ then
 end
 
 url=SelectRandomItem(self.image_urls)
-return self:get_image(url, source)
+if strutil.strlen(url) > 0
+then
+item={}
+item.url,item.title=self:get_image(url, source)
+end
 
+return item
 end
 
 return mod

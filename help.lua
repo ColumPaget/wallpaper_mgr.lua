@@ -27,6 +27,7 @@ print("  -resolution <resolution>                         get images matching <r
 print("  -exe_path <path>                                 colon-separated search path for 'setroot' programs. e.g. -exec_path /usr/X11R7/bin:/usr/bin")
 print("  -res <resolution>                                get images matching <resolution>")
 print("  -proxy <url>                                     use given proxy server")
+print("  -filetypes <list>                                comma-seperated list of file extensions to accept from image sources, e.g. '.jpg,.jpeg' or 'jpg,jpeg'. Be wary that most sites return .jpg, so if you leave that out of the list, you will get few (or no) images. Default is '.jpg,.jpeg,.png'")
 print("  -?                                               this help")
 print("  -help                                            this help")
 print("  --help                                           this help")

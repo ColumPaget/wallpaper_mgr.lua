@@ -72,7 +72,7 @@ end
 
 
 mod.get=function(self, source)
-local next_page, page
+local next_page, page, url, item
 
 page=source_parse(source, "Category:Commons_featured_desktop_backgrounds")
 
@@ -82,7 +82,21 @@ do
 next_page=mod.get_page(source, next_page)
 end
 
-return self:get_image(SelectRandomItem(mod.pages))
+
+for i=0,5,1
+do
+
+url=self:get_image(SelectRandomItem(mod.pages))
+if IsImageURL(url) == true
+then
+item={}
+item.url=url
+break
+end
+
+end
+
+return item
 end
 
 

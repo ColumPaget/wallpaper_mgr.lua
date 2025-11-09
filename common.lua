@@ -7,7 +7,7 @@ require("hash")
 require("net")
 require("dataparser")
 
-prog_version="3.1"
+prog_version="3.2"
 
 
 function source_parse(input, default_category)
@@ -49,6 +49,37 @@ end
 
 return nil
 end
+
+
+
+function SelectResolutionItem(choices)
+local i, item
+local best_res=""
+local selected_items={}
+
+if choices == nil then return nil end
+
+for i,item in ipairs(choices)
+do
+if resolution:select(item.resolution) == true then best_res=item.resolution end
+end
+
+if strutil.strlen(best_res) > 0
+then
+  for i,item in ipairs(choices)
+  do 
+    if item.resolution == best_res then table.insert(selected_items, item) end 
+  end
+else
+selected_items=choices
+end
+
+item=SelectRandomItem(selected_items)
+
+return item, best_res
+end
+
+
 
 
 function GetCurrWallpaperDetails()
@@ -111,3 +142,22 @@ if strutil.strlen(title) > 0 then print(title)
 else print(filesys.basename(url))
 end
 end
+
+
+
+function IsImageURL(url)
+local extn, match
+
+if strutil.strlen(url) == 0 then return false end
+
+extn=string.lower(filesys.extn(url))
+for i,match in ipairs(settings.filetypes)
+do
+if match==extn then return true end
+end
+
+return false
+end
+
+
+

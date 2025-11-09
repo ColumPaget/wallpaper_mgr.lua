@@ -5,23 +5,25 @@ function InitGetWallpapers()
 local mod={}
 
 mod.base_url="https://getwallpapers.com/"
-mod.image_urls={}
+
 
 mod.div_tag=function(self, data) 
-local str, url
+local str, item
 
 str=HtmlTagExtractAttrib(data, "data-fullimg")
 if strutil.strlen(str) > 0 
 then 
-url=self.base_url .. strutil.stripQuotes(str)
-table.insert(self.image_urls, url) 
+item={}
+item.url=self.base_url .. strutil.stripQuotes(str)
 end
 
+return item
 end
 
 
 mod.get=function(self, source)
-local S, XML, tag, html, str
+local S, XML, tag, html, str, item
+local items={}
 
 str=source_parse(source, "nature-desktop-wallpapers-backgrounds")
 url=self.base_url .. "/collection/" .. str
@@ -37,12 +39,16 @@ then
 	tag=XML:next()
 	while tag ~= nil
 	do
-		if tag.type=="div" then self:div_tag(tag.data) end
+		if tag.type=="div" 
+		then 
+				item=self:div_tag(tag.data) 
+				if item ~= nil then table.insert(items, item) end
+		end
 		tag=XML:next()
 	end
 end
 
-return SelectRandomItem(self.image_urls)
+return SelectRandomItem(items)
 end
 
 

@@ -35,9 +35,7 @@ return ""
 end
 
 mod.get=function(self, source)
-local S, XML, tag, str, html
-local url=""
-local title=""
+local S, XML, tag, str, html, item
 
 str="https://apod.nasa.gov/apod/astropix.html"
 print("GET: "..str)
@@ -54,17 +52,18 @@ then
 		if tag.type=="a"
 		then
 		 str=self:anchor_tag(tag.data)
-		 if strutil.strlen(str) > 0
+		 if IsImageURL(str) == true
 		 then
-		 url=str
-		 title=self.get_title(XML)
+     item={}
+		 item.url=str
+		 item.title=self.get_title(XML)
 		 end
 		end
 		tag=XML:next()
 	end
 end
 
-return url, title
+return item
 end
 
 

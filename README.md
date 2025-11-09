@@ -67,6 +67,7 @@ options:
   -exe_path <path>                                 colon-seperated search path for 'setroot' executables. e.g. '-exe_path /usr/X11R7/bin:/usr/bin'.
   -resolution <resolution>                         get images matching <resolution>
   -res <resolution>                                get images matching <resolution>
+  -filetypes <list>                                comma-seperated list of file extensions to accept from image sources, e.g. '.jpg,.jpeg' or 'jpg,jpeg'. Be wary that most sites return .jpg, so if you leave that out of the list, you will get few (or no) images. Default is '.jpg,.jpeg,.png'
   -?                                               this help
   -help                                            this help
   --help                                           this help
@@ -96,6 +97,14 @@ ENLIGHTENMENT##
 XFCE4##
 wallpaper_mgr.lua attempts a 'hail mary' use of the xconf-query app to set the wallpaper under XFCE4. It will set the background for *all* desktops that it can find.
 
+ICEWM##
+
+if the icewmbg program is found in the path, then it is called regardless of whether an x11 program has been called to set the root window.
+
+ROX, PCMANFM, SPACEFM, ZZZFM##
+
+These filemanagers/desktops are supported as of version 3.2. The appropriate programs are called regardless of whether an x11 program has been called to set the root window.
+
 
 NETWORK IMAGE SOURCES
 =====================
@@ -116,20 +125,22 @@ wallpaper_mgr.lua has a default list of sources consisting of:
   * getwallpapers:nature-desktop-wallpapers-backgrounds
   * getwallpapers:milky-way-wallpaper-1920x1080
   * getwallpapers:1920x1080-hd-autumn-wallpapers
-  * hipwallpapers:daily
+  * hipwallpapers:nature
   * suwalls:flowers
   * suwalls:beaches
   * suwalls:abstract
   * suwalls:nature
   * suwalls:space
-  * hqwalls:nature
-  * hqwalls:world
   * chandra:stars
   * chandra:galaxy
   * esahubble:nebulae
   * esahubble:galaxies
   * esahubble:stars
   * esahubble:starclusters
+  * esa:earth 
+  * eso:galaxy
+  * eso:nebula
+  * eso:observatory
   * wikimedia:Category:Commons_featured_desktop_backgrounds
   * wikimedia:Category:Hubble_images_of_galaxies
   * wikimedia:Category:Hubble_images_of_nebulae
@@ -142,6 +153,10 @@ wallpaper_mgr.lua has a default list of sources consisting of:
   * wikimedia:Commons:Featured_pictures/Places/Other
   * wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors
   * wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes.
+  * archive.org:wallpaperscollection
+  * archive.org:wallpaper-1.2037
+  * archive.org:jcorl_white_sands
+
 
 This list includes entries from all supported sites, and other things can be added from these sites by paying attention to the urls of the 'category' pages on each site.
 
@@ -225,3 +240,9 @@ wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors
 wikimedia:Category:Hubble_images_of_galaxies
 wikimedia:User:Miya/POTY/Nature_views2008
 ```
+
+
+ARCHIVE.ORG SOURCES
+===================
+
+archive.org sources are accessed via their 'download' page, which should provide a list of sub-items. There must be image items at the top level of an archive.org package, and they must not have 'thumb' in their name (as wallpaper_mgr.lua tries to avoid downloading thumbnails).

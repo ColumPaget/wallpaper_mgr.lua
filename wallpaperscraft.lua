@@ -39,7 +39,7 @@ end
 
 
 mod.get=function(self, source)
-local S, html, str, XML, category, len
+local S, html, str, XML, category, len, item
 
 category=source_parse(source, "cities")
 str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080/page%d", category, math.random(100))
@@ -73,7 +73,13 @@ then
 end
 
 str=SelectRandomItem(self.pages)
-return self:get_image("https://wallpaperscraft.com/" .. str)
+if strutil.strlen(str) > 0
+then
+item={}
+item.url=self:get_image("https://wallpaperscraft.com/" .. str)
+end
+
+return item
 end
 
 return mod

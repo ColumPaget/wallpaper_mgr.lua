@@ -6,7 +6,7 @@ local mod={}
 
 
 mod.readdir=function(self, source, url_list, dir_list)
-local line, extn, path
+local line, path
 local S
 
 S=stream.STREAM(source.."/*", "l")
@@ -16,10 +16,8 @@ then
 	while line ~= nil
 	do
 	line=strutil.trim(line)
-  extn=filesys.extn(line)
-	extn=string.lower(extn)
 	path=source.."/"..filesys.basename(line)
-	if extn ~= nil and (extn==".jpeg" or extn==".jpg" or extn==".png")
+	if extn ~= nil and IsImageURL(line)==true
 	then
     table.insert(url_list, path)
   elseif dir_list ~= nil

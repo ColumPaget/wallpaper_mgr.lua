@@ -60,7 +60,7 @@ then
   do
 
   str=item:value("url")
-  if strutil.strlen(str) > 0
+  if IsImageURL(str) == true
   then 
   img={}
   img.url=self.base_url .. str
@@ -136,16 +136,25 @@ end
 item=SelectRandomItem(self.images)
 if item == nil then return nil end
 
-return self:get_image_details(item.url)
+item.url=self:get_image_details(item.url)
+
+return item
 end
 
 
-mod.esa_extract_image=function(self, img_data, XML)
-local img, tag
 
-	--first extract url of image file
+
+
+mod.esa_extract_image=function(self, img_data, XML)
+local img, tag, url
+
+--first extract url of image file
+
+url=HtmlTagExtractAttrib(img_data, "src")
+if IsImageURL(url) == true
+then
 	img={}
-	img.url=HtmlTagExtractAttrib(img_data, "src")
+  img.url=url
 
   -- now we look through remaining tags for an image title
   -- if we hit '</tr>' then we're at the end of stuff relating 
@@ -160,6 +169,7 @@ local img, tag
 		end
 	tag=XML:next()
 	end
+end
 
 return img
 end
@@ -181,7 +191,7 @@ do
     if width==nil or tonumber(width) > 60
     then
     	img=self:esa_extract_image(tag.data, XML)
-    	table.insert(self.images, img)
+    	if img ~= nil then table.insert(self.images, img) end
   	end
   end
 tag=XML:next()
@@ -222,9 +232,7 @@ then
 end
 
 item=SelectRandomItem(self.images)
-if item == nil then return nil end
-
-return item.url, item.title
+return item
 end
 
 

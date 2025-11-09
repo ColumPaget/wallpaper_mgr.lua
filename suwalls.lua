@@ -55,7 +55,7 @@ end
 
 
 mod.get=function(self, source)
-local S, html, str, XML, category
+local S, html, str, XML, category, item
 
 category=source_parse(source, "nature")
 str="https://suwalls.com/" .. category
@@ -84,7 +84,10 @@ then
 end
 
 str=SelectRandomItem(self.pages)
-return self:get_image(str)
+item={}
+item.url=self:get_image(str)
+
+return item
 end
 
 return mod

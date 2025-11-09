@@ -2,19 +2,19 @@
 
 
 function GetWallpaperFromSite(source)
-local url, title, description
+local url, item
 local result=false
 
 
 mod=sources:select(source)
 if mod ~= nil
 then 
-url,title,description,author=mod:get(source) 
+item=mod:get(source) 
 
-if strutil.strlen(url) > 0 
+if item ~= nil and strutil.strlen(item.url) > 0 
 then
-if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description, author) 
-else print("BLOCKED: " .. url .. ". Never use this image.")
+if blocklist:check(item.url) == false then result=GetWallpaper(item.url, source, item.title, item.description, item.author) 
+else print("BLOCKED: " .. item.url .. ". Never use this image.")
 end
 
 end
@@ -85,6 +85,21 @@ if strutil.strlen(str) then net.setProxy(str) end
 
 end
 
+function ParseFileTypes(config)
+local toks, tok
+local filetypes={}
+toks=strutil.TOKENIZER(config, ",")
+tok=toks:next()
+while tok ~= nil
+do
+if string.sub(tok, 1, 1) ~= '.' then tok="." .. tok end
+table.insert(filetypes, tok)
+tok=toks:next()
+end
+
+return filetypes
+end
+
 
 function ParseCommandLine()
 local i, str, list, source_list, src_url
@@ -120,6 +135,7 @@ then
 	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
 	elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
 	elseif str=="-proxy" then settings.proxy=arg[i+1]; arg[i+1]=""
+	elseif str=="-filetypes" then settings.filetypes=ParseFileTypes(arg[i+1]); arg[i+1]=""
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
@@ -143,7 +159,6 @@ math.randomseed(os.time()+process.getpid())
 InitSettings()
 sources=InitSources()
 blocklist=InitBlocklist()
-resolution=InitResolution()
 
 process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
 
@@ -156,7 +171,6 @@ ProxySetup()
 
 if act=="help" then PrintHelp()
 elseif act=="version" then print("wallpaper_mgr version: " .. prog_version)
-elseif act=="random" then WallpaperFromRandomSource(source_list)
 elseif act=="info" then ShowCurrWallpaperDetails()
 elseif act=="title" then ShowCurrWallpaperTitle()
 elseif act=="list" then sources:list()
@@ -171,6 +185,10 @@ elseif act=="block" then blocklist:add(target)
 elseif act=="save" then SaveWallpaper(src_url, target)
 elseif act=="fave" then FaveWallpaper(src_url, target)
 elseif act=="sync" then PigeonholedSync(target)
+elseif act=="random"
+then
+  resolution=InitResolution()
+  WallpaperFromRandomSource(source_list)
 else print("unrecognized command-line.")
 end
 

@@ -4,10 +4,10 @@
 function InitHipWallpaper()
 local mod={}
 
-mod.image_urls={}
 
 mod.get=function(self, source)
 local S, XML, tag, html, url, category
+local items={}
 
 category=source_parse(source, "nature")
 url="https://hipwallpaper.com/search?q="..category
@@ -26,14 +26,19 @@ then
 		if tag.type=="a" 
 		then 
 			url=HtmlTagExtractAttrib(tag.data, 'data-bs-src')
-			if strutil.strlen(url) > 0 then table.insert(self.image_urls, url) end
+			if IsImageURL(url) == true
+			then 
+      item={}
+			item.url=url
+			table.insert(items, item) 
+			end
 		end
 		tag=XML:next()
 	end
 end
 
 
-return SelectRandomItem(self.image_urls)
+return SelectRandomItem(items)
 end
 
 return mod

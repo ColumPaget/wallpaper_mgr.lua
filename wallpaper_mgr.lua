@@ -7,7 +7,7 @@ require("hash")
 require("net")
 require("dataparser")
 
-prog_version="3.1"
+prog_version="3.2"
 
 
 function source_parse(input, default_category)
@@ -49,6 +49,37 @@ end
 
 return nil
 end
+
+
+
+function SelectResolutionItem(choices)
+local i, item
+local best_res=""
+local selected_items={}
+
+if choices == nil then return nil end
+
+for i,item in ipairs(choices)
+do
+if resolution:select(item.resolution) == true then best_res=item.resolution end
+end
+
+if strutil.strlen(best_res) > 0
+then
+  for i,item in ipairs(choices)
+  do 
+    if item.resolution == best_res then table.insert(selected_items, item) end 
+  end
+else
+selected_items=choices
+end
+
+item=SelectRandomItem(selected_items)
+
+return item, best_res
+end
+
+
 
 
 function GetCurrWallpaperDetails()
@@ -111,12 +142,32 @@ if strutil.strlen(title) > 0 then print(title)
 else print(filesys.basename(url))
 end
 end
+
+
+
+function IsImageURL(url)
+local extn, match
+
+if strutil.strlen(url) == 0 then return false end
+
+extn=string.lower(filesys.extn(url))
+for i,match in ipairs(settings.filetypes)
+do
+if match==extn then return true end
+end
+
+return false
+end
+
+
+
 function InitSettings()
 
 settings={}
+settings.filetypes={".jpg", ".jpeg", ".png"}
 settings.working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
 settings.default_sources={
-"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities", "wallpapers13:nature-wallpapers/beach", "wallpapers13:nature-wallpapers/waterfalls", "wallpapers13:nature-wallpapers/flowers", "wallpapers13:nature-wallpapers/sunset", "wallpapers13:other-topics-wallpapers/church-cathedral", "wallpapers13:nature-wallpapers/landscapes", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:nature", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "hdqwalls:nature", "hdqwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space","chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "esawebb:nebulae", "esawebb:galaxies", "esawebb:stars", "esawebb:solarsystem","wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes","wallpaperaccess:nature","wallpaperaccess:kereta-api","wallpaperaccess:city", "wallpaperaccess:universe-full-hd-pc", "wallpaperaccess:4k-architecture", "wallpaperaccess:space", "wallpaperaccess:china-sea","wallpaperaccess:mountains", "wallpaperaccess:china-mountains", "esa:earth", "archive.org:"
+"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities", "wallpapers13:nature-wallpapers/beach", "wallpapers13:nature-wallpapers/waterfalls", "wallpapers13:nature-wallpapers/flowers", "wallpapers13:nature-wallpapers/sunset", "wallpapers13:other-topics-wallpapers/church-cathedral", "wallpapers13:nature-wallpapers/landscapes", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:nature", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space", "wallhaven:mars", "chandra:stars", "chandra:galaxy", "chandra:clusters", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "esawebb:nebulae", "esawebb:galaxies", "esawebb:stars", "esawebb:solarsystem", "esa:earth", "eso:nebula", "eso:galaxy", "eso:telescope", "eso:observatory", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes", "archive.org:wallpaperscollection", "archive.org:wallpaper-1.2037", "archive.org:jcorl_white_sands", "archive.org:21590", "archive.org:macwallpapers", "archive.org:macos-wallpapers_202402", "archive.org:android6wallpapers", "archive.org:wallpapers-pack-selected-images", "sourcesplash:galaxy", "sourcesplash:forest"
 }
 --"chandra:dwarf", "chandra:snr", "chandra:quasars", "chandra:nstars",  "chandra:clusters", "chandra:bh"}
 
@@ -249,6 +300,7 @@ local obj
 if string.sub(source, 1, 5)=="bing:" then obj=InitBing()
 elseif string.sub(source, 1, 5)=="nasa:" then obj=InitNASA()
 elseif string.sub(source, 1, 8)=="chandra:" then obj=InitChandra()
+elseif string.sub(source, 1, 4)=="eso:" then obj=InitESO()
 elseif string.sub(source, 1, 4)=="esa:" then obj=InitESA("https://esa.int")
 elseif string.sub(source, 1, 10)=="esahubble:" then obj=InitESA("https://esahubble.org")
 elseif string.sub(source, 1, 8)=="esawebb:" then obj=InitESA("https://esawebb.org")
@@ -256,13 +308,13 @@ elseif string.sub(source, 1, 13)=="wallpapers13:" then obj=InitWallpapers13()
 elseif string.sub(source, 1, 14)=="getwallpapers:" then obj=InitGetWallpapers()
 elseif string.sub(source, 1, 13)=="hipwallpaper:" then obj=InitHipWallpaper()
 elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
-elseif string.sub(source, 1, 16)=="wallpaperaccess:" then obj=InitWallpaperAccess()
 elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
+elseif string.sub(source, 1, 10)=="wallhaven:" then obj=InitWallhaven()
+elseif string.sub(source, 1, 13)=="sourcesplash:" then obj=InitSourceSplash()
 elseif string.sub(source, 1, 16)=="wallpaperscraft:" then obj=InitWallpapersCraft()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
-elseif string.sub(source, 1, 9)=="hdqwalls:" then obj=InitHDQWalls()
 elseif string.sub(source, 1, 12)=="archive.org:" then obj=InitArchiveOrg()
-elseif string.sub(source, 1, 11)=="archive.org" then obj=InitArchiveOrg()
+elseif string.sub(source, 1, 12)=="archive_org" then obj=InitArchiveOrg()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
 elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
 elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
@@ -454,11 +506,7 @@ local mod={}
 mod.base_url="http://www.bing.com/"
 
 mod.get=function(self, source)
-local S, XML, tag, page_url, str, category
-local url=""
-local title=""
-local description=""
-local author=""
+local S, XML, tag, page_url, str, category, item
 
 page_url=self.base_url
 category=source_parse(source,"")
@@ -472,25 +520,28 @@ then
 	XML=xml.XML(str)
 	S:close()
 
+  item={}
+
 	tag=XML:next()
 	while tag ~= nil
 	do
 		if tag.type=="a" 
 		then 
 			str=HtmlTagExtractAttrib(tag.data, 'class')
-			if str == "downloadLink " then url=self.base_url .. HtmlTagExtractAttrib(tag.data, 'href') 
-			elseif str== "title" then title=XML:next().data
+			if str == "downloadLink " then item.url=self.base_url .. HtmlTagExtractAttrib(tag.data, 'href') 
+			elseif str== "title" then item.title=XML:next().data
       end
-		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then description=XML:next().data
-		elseif tag.type=='div' and tag.data=='class="copyright" id="copyright"' then author=XML:next().data
-		-- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then title=XML:next().value
+		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then item.description=XML:next().data
+		elseif tag.type=='div' and tag.data=='class="copyright" id="copyright"' then item.author=XML:next().data
+		-- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then item.title=XML:next().value
 		end
 		tag=XML:next()
 	end
 
+	print("ITEM: ".. tostring(item.url))
 end
 
-return url,title,description,author
+return item
 
 end
 
@@ -535,9 +586,7 @@ return ""
 end
 
 mod.get=function(self, source)
-local S, XML, tag, str, html
-local url=""
-local title=""
+local S, XML, tag, str, html, item
 
 str="https://apod.nasa.gov/apod/astropix.html"
 print("GET: "..str)
@@ -554,17 +603,18 @@ then
 		if tag.type=="a"
 		then
 		 str=self:anchor_tag(tag.data)
-		 if strutil.strlen(str) > 0
+		 if IsImageURL(str) == true
 		 then
-		 url=str
-		 title=self.get_title(XML)
+     item={}
+		 item.url=str
+		 item.title=self.get_title(XML)
 		 end
 		end
 		tag=XML:next()
 	end
 end
 
-return url, title
+return item
 end
 
 
@@ -633,7 +683,7 @@ then
   do
 
   str=item:value("url")
-  if strutil.strlen(str) > 0
+  if IsImageURL(str) == true
   then 
   img={}
   img.url=self.base_url .. str
@@ -709,16 +759,25 @@ end
 item=SelectRandomItem(self.images)
 if item == nil then return nil end
 
-return self:get_image_details(item.url)
+item.url=self:get_image_details(item.url)
+
+return item
 end
 
 
-mod.esa_extract_image=function(self, img_data, XML)
-local img, tag
 
-	--first extract url of image file
+
+
+mod.esa_extract_image=function(self, img_data, XML)
+local img, tag, url
+
+--first extract url of image file
+
+url=HtmlTagExtractAttrib(img_data, "src")
+if IsImageURL(url) == true
+then
 	img={}
-	img.url=HtmlTagExtractAttrib(img_data, "src")
+  img.url=url
 
   -- now we look through remaining tags for an image title
   -- if we hit '</tr>' then we're at the end of stuff relating 
@@ -733,6 +792,7 @@ local img, tag
 		end
 	tag=XML:next()
 	end
+end
 
 return img
 end
@@ -754,7 +814,7 @@ do
     if width==nil or tonumber(width) > 60
     then
     	img=self:esa_extract_image(tag.data, XML)
-    	table.insert(self.images, img)
+    	if img ~= nil then table.insert(self.images, img) end
   	end
   end
 tag=XML:next()
@@ -795,9 +855,7 @@ then
 end
 
 item=SelectRandomItem(self.images)
-if item == nil then return nil end
-
-return item.url, item.title
+return item
 end
 
 
@@ -810,40 +868,81 @@ end
 return mod
 end
 
+--get images from European Southern Observatory observatory webpage
+
+
+function InitESO()
+local mod={}
+
+mod.images={}
+
+mod.consider_script=function (self, script)
+local P, item, img
+
+if string.sub(script, 1, 14) == "var images = ["
+then
+ P=dataparser.PARSER("json", string.sub(script, 14))
+ item=P:next()
+ while item ~= nil and strutil.strlen(item:value("id")) > 0
+ do
+ img={}
+ img.id=item:value("id")
+ img.title=item:value("title")
+ img.resolution=item:value("width").."x"..item:value("height")
+ img.page=item:value("url")
+ table.insert(self.images, img)
+ item=P:next()
+ end
+end
+
+end
+
+
+mod.get_image_url=function(self, item)
+local S
+
+return "https://cdn.eso.org/images/wallpaper4/"..item.id..".jpg"
+end
+
+
+mod.get=function(self, source)
+local S, XML, str, html, item
+local title=""
+
+category=source_parse(source, "nebula")
+str="https://www.eso.org/public/images/?search=" .. category 
+
+print("GET: "..str)
+S=stream.STREAM(str, "r")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	  if tag.type=="script" then self:consider_script(XML:next().data)end
+	  tag=XML:next()
+	end
+end
+
+item=SelectRandomItem(self.images)
+if item ~= nil then item.url=self:get_image_url(item) end
+
+return item
+
+end
+
+return mod
+end
+
 --get images from chandra observatory webpage
 
 
 function InitChandra()
 local mod={}
-
-mod.image_urls={}
-
-
-
-
-mod.select=function(self, items)
-local i, item
-local best_res=""
-local selected_items={}
-
-for i,item in ipairs(items)
-do
-if resolution:select(item.resolution) == true then best_res=item.resolution end
-end
-
-
-for i,item in ipairs(items)
-do 
-if item.resolution == best_res then table.insert(selected_items, item) end 
-end
-
-item=SelectRandomItem(selected_items)
-if item ~= nil then print("selected resolution: "..tostring(best_res).." url:"..tostring(item.url))
-else print("fail: can't find image from chandra.harvard.edu")
-end
-
-return item
-end
 
 
 
@@ -881,7 +980,7 @@ then
 			if string.find(tag.data, ' ') == nil and string.find(tag.data, 'x') ~= nil
 			then
 			item={}
-			item.url=str
+      item.url="https://chandra.harvard.edu/" .. str
 			item.title=title
 			item.resolution=tag.data
 			table.insert(images, item)
@@ -893,9 +992,9 @@ then
 end
 
 
-item=self:select(images)
-if item==nil then return nil end
-return "https://chandra.harvard.edu/" .. item.url, item.title
+item=SelectResolutionItem(images)
+return item
+
 end
 
 return mod
@@ -906,10 +1005,10 @@ end
 function InitHipWallpaper()
 local mod={}
 
-mod.image_urls={}
 
 mod.get=function(self, source)
 local S, XML, tag, html, url, category
+local items={}
 
 category=source_parse(source, "nature")
 url="https://hipwallpaper.com/search?q="..category
@@ -928,14 +1027,19 @@ then
 		if tag.type=="a" 
 		then 
 			url=HtmlTagExtractAttrib(tag.data, 'data-bs-src')
-			if strutil.strlen(url) > 0 then table.insert(self.image_urls, url) end
+			if IsImageURL(url) == true
+			then 
+      item={}
+			item.url=url
+			table.insert(items, item) 
+			end
 		end
 		tag=XML:next()
 	end
 end
 
 
-return SelectRandomItem(self.image_urls)
+return SelectRandomItem(items)
 end
 
 return mod
@@ -1085,7 +1189,7 @@ then
 	elseif tag.type == "a" 
 	then 
 		str=self:extract_url(tag.data) 
-		if string.find(str, ".jpg") ~= nil then url=str end
+		if IsImageURL(str) == true then url=str end
 	end
 	if tag.type == "/tag" then break end
 
@@ -1098,7 +1202,8 @@ end
 
 
 mod.get=function(self, source)
-local S, XML, html, tag, url="https://www.wallpapers13.com/category/cities-wallpapers"
+local S, XML, html, tag, item
+local url="https://www.wallpapers13.com/category/cities-wallpapers"
 
 if strutil.strlen(source)
 then
@@ -1128,8 +1233,13 @@ then
 end
 
 url=SelectRandomItem(self.image_urls)
-return self:get_image(url, source)
+if strutil.strlen(url) > 0
+then
+item={}
+item.url,item.title=self:get_image(url, source)
+end
 
+return item
 end
 
 return mod
@@ -1142,23 +1252,25 @@ function InitGetWallpapers()
 local mod={}
 
 mod.base_url="https://getwallpapers.com/"
-mod.image_urls={}
+
 
 mod.div_tag=function(self, data) 
-local str, url
+local str, item
 
 str=HtmlTagExtractAttrib(data, "data-fullimg")
 if strutil.strlen(str) > 0 
 then 
-url=self.base_url .. strutil.stripQuotes(str)
-table.insert(self.image_urls, url) 
+item={}
+item.url=self.base_url .. strutil.stripQuotes(str)
 end
 
+return item
 end
 
 
 mod.get=function(self, source)
-local S, XML, tag, html, str
+local S, XML, tag, html, str, item
+local items={}
 
 str=source_parse(source, "nature-desktop-wallpapers-backgrounds")
 url=self.base_url .. "/collection/" .. str
@@ -1174,69 +1286,77 @@ then
 	tag=XML:next()
 	while tag ~= nil
 	do
-		if tag.type=="div" then self:div_tag(tag.data) end
+		if tag.type=="div" 
+		then 
+				item=self:div_tag(tag.data) 
+				if item ~= nil then table.insert(items, item) end
+		end
 		tag=XML:next()
 	end
 end
 
-return SelectRandomItem(self.image_urls)
+return SelectRandomItem(items)
 end
 
 
 return mod
 end
 
--- module to download a random image from getwallpapers.com
+-- get images using the sourcesplash API
 
-
-function InitWallpaperAccess()
+function InitSourceSplash()
 local mod={}
-
-mod.base_url="https://wallpaperaccess.com/"
-mod.image_urls={}
-
-
-mod.div_tag=function(self, data) 
-local url
-
-str=HtmlTagExtractAttrib(data, "data-fullimg")
-if strutil.strlen(str) > 0 
-then 
-table.insert(self.image_urls, self.base_url ..  str) 
-end
-
-end
 
 
 mod.get=function(self, source)
-local S, XML, tag, html, url, category
+local S, str, P, items, item
+local title=""
+local images={}
 
-category=source_parse(source, "nature")
-url=self.base_url..category
+
+category=source_parse(source, "galaxy")
+url="https://www.sourcesplash.com/api/search?q=" .. category
 
 print("GET: "..url)
-S=stream.STREAM(url,"r")
+S=stream.STREAM(url, "r")
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
+	str=S:readdoc()
+	P=dataparser.PARSER("json", str)
 	S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-		if tag.type=="div" then self:div_tag(tag.data) end
-		tag=XML:next()
-	end
+	items=P:open("photos")
+	item=items:next()
+	while item ~= nil
+  do
+  image={}
+  image.title=item:value("description")
+  image.url=strutil.unQuote(item:value("url"))
+  image.resolution=item:value("width") .. "x" ..item:value("height")
+  image.author=item:value("author")
+
+	table.insert(images, image)
+	item=items:next()
+  end
 end
 
-return SelectRandomItem(self.image_urls)
+--item=SelectResolutionItem(images)
+item=SelectRandomItem(images)
+
+
+if item==nil
+then
+  print("fail: can't find image from sourcesplash.com")
+  return nil
+else
+  return item
+end
+
 end
 
 
 return mod
 end
-
 
 function InitSUWalls()
 local mod={}
@@ -1294,7 +1414,7 @@ end
 
 
 mod.get=function(self, source)
-local S, html, str, XML, category
+local S, html, str, XML, category, item
 
 category=source_parse(source, "nature")
 str="https://suwalls.com/" .. category
@@ -1323,92 +1443,10 @@ then
 end
 
 str=SelectRandomItem(self.pages)
-return self:get_image(str)
-end
+item={}
+item.url=self:get_image(str)
 
-return mod
-end
-
-function InitHDQWalls()
-local mod={}
-
-mod.pages={}
-
-
-mod.get_image=function(self, page)
-local S, html, XML, tag 
-local url=""
-local title=""
-
-if strutil.strlen(page) == 0 then return nil end
-S=stream.STREAM(page, "")
-if S ~= nil
-then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
-
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "meta"
-	then
-		str=HtmlTagExtractAttrib(tag.data, 'property="og:image"', "content") 
-		if strutil.strlen(str) > 0 then url=str end
-
-		str=HtmlTagExtractAttrib(tag.data, 'property="og:title"', "content") 
-		if strutil.strlen(str) > 0 then title=str end
-	end
-	tag=XML:next()
-	end
-end
-
-return url, title
-end
-
-
-mod.get=function(self, source)
-local S, html, str, XML, category, len
-
-category=source_parse(source, "nature")
-len=strutil.strlen(category)
-if string.sub(category, len - 10) ~= "-wallpapers" then category=category .. "-wallpapers" end
-
-str=string.format("https://hdqwalls.com/category/%s/page/%d", category, math.random(10))
-
-print("GET: "..str)
-S=stream.STREAM(str, "")
-if S == nil or S:getvalue("HTTP:ResponseCode") ~= "200"
-then
-str=string.format("https://hdqwalls.com/category/%s-wallpapers", category)
-S=stream.STREAM(str, "")
-end
-
-if S ~= nil
-then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
-
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "div" and string.sub(tag.data, 1, 17) == "class=\"wall-resp "
-	then
-		
-		tag=XML:next()
-		if tag.type=="a"
-		then
-		str=HtmlTagExtractHRef(tag.data,"")
-		if str ~= nil then table.insert(self.pages, str) end
-		end
-	end
-	tag=XML:next()
-	end
-end
-
-str=SelectRandomItem(self.pages)
-return self:get_image(str)
+return item
 end
 
 return mod
@@ -1454,7 +1492,7 @@ end
 
 
 mod.get=function(self, source)
-local S, html, str, XML, category, len
+local S, html, str, XML, category, len, item
 
 category=source_parse(source, "cities")
 str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080/page%d", category, math.random(100))
@@ -1488,8 +1526,67 @@ then
 end
 
 str=SelectRandomItem(self.pages)
-return self:get_image("https://wallpaperscraft.com/" .. str)
+if strutil.strlen(str) > 0
+then
+item={}
+item.url=self:get_image("https://wallpaperscraft.com/" .. str)
 end
+
+return item
+end
+
+return mod
+end
+-- get images using the wallhaven API
+
+function InitWallhaven()
+local mod={}
+
+
+mod.get=function(self, source)
+local S, str, P, items, item
+local title=""
+local images={}
+
+
+category=source_parse(source, "nature")
+url="https://wallhaven.cc/api/v1/search?q=" .. category
+
+print("GET: "..url)
+S=stream.STREAM(url, "r")
+if S ~= nil
+then
+	str=S:readdoc()
+	P=dataparser.PARSER("json", str)
+	S:close()
+
+	items=P:open("data")
+	item=items:next()
+	while item ~= nil
+  do
+  url=strutil.unQuote(item:value("path"))
+
+  if IsImageURL(url) == true
+	then
+    image={}
+    image.url=url
+    image.title=item:value("id")
+    image.resolution=item:value("resolution")
+
+  	table.insert(images, image)
+	end
+
+	item=items:next()
+  end
+end
+
+--item=SelectResolutionItem(images)
+item=SelectRandomItem(images)
+
+return item
+
+end
+
 
 return mod
 end
@@ -1567,7 +1664,7 @@ end
 
 
 mod.get=function(self, source)
-local next_page, page
+local next_page, page, url, item
 
 page=source_parse(source, "Category:Commons_featured_desktop_backgrounds")
 
@@ -1577,7 +1674,21 @@ do
 next_page=mod.get_page(source, next_page)
 end
 
-return self:get_image(SelectRandomItem(mod.pages))
+
+for i=0,5,1
+do
+
+url=self:get_image(SelectRandomItem(mod.pages))
+if IsImageURL(url) == true
+then
+item={}
+item.url=url
+break
+end
+
+end
+
+return item
 end
 
 
@@ -1587,7 +1698,7 @@ end
 
 
 
---get images from chandra observatory webpage
+--get images from 'wallpaper collections' posted at archive.org
 
 
 function InitArchiveOrg()
@@ -1598,11 +1709,16 @@ mod.image_urls={}
 
 
 mod.get=function(self, source)
-local S, XML, str, html, item, root
-local title=""
+local S, XML, str, html, item, root, item
+local collection
 local images={}
 
-root="https://archive.org/download/wallpaperscollection"
+if strutil.strlen(source) ==0 then return nil end
+
+collection=source_parse(source, "wallpaperscollection")
+root="https://archive.org/download/" .. collection
+
+
 print("GET: "..root)
 S=stream.STREAM(root, "r")
 if S ~= nil
@@ -1617,7 +1733,7 @@ then
 	if tag.type=="a"
 	then 
 	  str=HtmlTagExtractHRef(tag.data, "")
-		if strutil.strlen(str) > 0  and filesys.extn(str)==".jpg" and string.find(str, "thumb") == nil
+		if strutil.strlen(str) > 0  and IsImageURL(str) == true and string.find(str, "thumb") == nil
 		then
 			table.insert(images, str)
 		end
@@ -1627,12 +1743,14 @@ then
 end
 
 
-item=SelectRandomItem(images)
-if item==nil then return nil end
+str=SelectRandomItem(images)
+if str ~= nil
+then
+item={}
+item.url=root .. "/" .. str
+end
 
-return root .. "/" .. item
-
-
+return item
 end
 
 return mod
@@ -1645,7 +1763,7 @@ local mod={}
 
 
 mod.readdir=function(self, source, url_list, dir_list)
-local line, extn, path
+local line, path
 local S
 
 S=stream.STREAM(source.."/*", "l")
@@ -1655,10 +1773,8 @@ then
 	while line ~= nil
 	do
 	line=strutil.trim(line)
-  extn=filesys.extn(line)
-	extn=string.lower(extn)
 	path=source.."/"..filesys.basename(line)
-	if extn ~= nil and (extn==".jpeg" or extn==".jpg" or extn==".png")
+	if extn ~= nil and IsImageURL(line)==true
 	then
     table.insert(url_list, path)
   elseif dir_list ~= nil
@@ -1693,39 +1809,81 @@ return mod
 end
 
 
-function XFCE4SetRoot(image_path)
-local S, str, prop_name
+function ROXDesktopSetRoot(cmd, image_path)
+local P, S, str, path
 
-S=process.PROCESS("xfconf-query --channel xfce4-desktop --list", "")
-if S ~= nil
+
+path=filesys.find("rox", process.getenv("PATH"))
+if strutil.strlen(path) == 0 then path=filesys.find("roxfiler", process.getenv("PATH")) end
+if strutil.strlen(path) == 0 then path=filesys.find("rox-filer", process.getenv("PATH")) end
+
+if strutil.strlen(path) > 0
 then
-  prop_name=S:readln()
-  while prop_name ~= nil
-  do
-     prop_name=strutil.trim(prop_name)
-     if strutil.pmatch("/backdrop/*/last-image", prop_name) == true 
-     then 
-     str="xfconf-query --channel xfce4-desktop --property '" .. prop_name .. "' --set '" .. image_path .."'"
-     os.execute(str)
-     end
-
-     prop_name=S:readln()
+  P=process.PROCESS(path .. " --RPC", "")
+  if P ~= nil
+  then
+  print("setting background for ROX desktop")
+  str="<?xml version=\"1.0\"?>\n<env:Envelope xmlns:env=\"http://www.w3.org/2001/12/soap-envelope\">\n<env:Body xmlns=\"http://rox.sourceforge.net/SOAP/ROX-Filer\">\n<SetBackdrop>\n<Filename>" .. image_path .. "</Filename>\n<Style>Stretch</Style>\n</SetBackdrop>\n</env:Body>\n</env:Envelope>\n"
+  P:send(str)
+  P:flush()
+  
+  cmd="rox"
   end
 end
+
+return cmd
 end
 
 
-function SetRoot(image_path)
+function XFCE4SetRoot(cmd, image_path)
+local P, str, prop_name, path
 
-local programs={"hsetroot -cover", "feh --no-fehbg --bg-center --bg-fill", "xsetbg -fill", "display -window root -backdrop", "gm display -window root -backdrop", "imlibsetroot -p c -s ", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot", "bgs -z "}
-local cmd, i, toks, item, str, path
-
---try to detect if anything went wrong with getting the image
-if image_path==nil or filesys.size(image_path) < 100 then return end
-if strutil.strlen(settings.setroot) > 0
+path=filesys.find("xconf-query", process.getenv("PATH"))
+if strutil.strlen(path) > 0
 then
-	cmd=settings.setroot .. " " .. image_path
-else
+  P=process.PROCESS(path .. " --channel xfce4-desktop --list", "")
+  if P ~= nil
+  then
+    prop_name=P:readln()
+    while prop_name ~= nil
+    do
+       prop_name=strutil.trim(prop_name)
+       if strutil.pmatch("/backdrop/*/last-image", prop_name) == true 
+       then 
+       str="xfconf-query --channel xfce4-desktop --property '" .. prop_name .. "' --set '" .. image_path .."'"
+       print("setting background for XFCE desktop using: ".. str)
+       os.execute(str)
+       end
+  
+       prop_name=P:readln()
+    end
+   cmd="xfconf-query"
+  end
+end
+
+return cmd
+end
+
+
+function GenericAppSetRoot(found, filename, invocation, title, image_path)
+local path
+
+--if the user has 'dconf' installed, then assume they have a mate desktop and set that too
+path=filesys.find(filename, process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print(filename .. " command found at " .. path ..". " .. title)
+os.execute(path .. invocation ..  "\"" .. image_path .. "\"") 
+found=filename
+end
+
+return found
+end
+
+
+function X11SetRootFindProgram()
+local programs={"hsetroot -cover", "feh --no-fehbg --bg-center --bg-fill", "xsetbg -fill", "display -window root -backdrop", "gm display -window root -backdrop", "imlibsetroot -p c -s ", "xli -fullscreen -onroot -quiet", "qiv --root_s", "wmsetbg -s -S", "Esetroot -scale", "xv -max -smooth -root -quit", "setwallpaper", "setroot", "bgs -z "}
+local i, item, toks, str, path, cmd
 
 for i,item in ipairs(programs)
 do
@@ -1733,22 +1891,43 @@ do
 	str=toks:next()
 	path=filesys.find(str, process.getenv("PATH"))
 	if strutil.strlen(path) > 0
-	then
-	cmd=path.." "..toks:remaining() .. " " .. image_path
-	
+	then 
+  cmd=path.." "..toks:remaining() .. " " 
 	break
 	end
 end
 
+return cmd
+end
+
+
+function X11SetRoot(image_path)
+local cmd
+
+if strutil.strlen(settings.setroot) > 0 then cmd=settings.setroot .. " " .. image_path
+else cmd=X11SetRootFindProgram()
+end
 
 -- if we found an x11 command then use it
 if strutil.strlen(cmd) > 0 
 then
 cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
 print("setting X11 root window with: "..cmd)
-os.execute(cmd)
+os.execute(cmd .. image_path)
 end
 
+return cmd
+end
+
+
+function SetRoot(image_path)
+local cmd, i, str, path
+
+--try to detect if anything went wrong with getting the image
+if image_path==nil or filesys.size(image_path) < 100 then return end
+
+-- first try standard 'X11' background setters
+cmd=X11SetRoot(image_path)
 
 --if the user has 'gsettings' installed, then assume they have a gnome desktop and set that too
 path=filesys.find("gsettings", process.getenv("PATH"))
@@ -1761,48 +1940,14 @@ os.execute("gsettings set org.cinnamon.desktop.background picture-uri file:///" 
 cmd="gsettings"
 end
 
-path=filesys.find("xfconf-query", process.getenv("PATH"))
-if strutil.strlen(path) > 0
-then
-print("xfconf-query command found at " .. path .. ". Setting background for xfce4 desktop")
-XFCE4SetRoot(image_path)
-cmd="xfconf-query"
-end
+cmd=XFCE4SetRoot(cmd, image_path)
+cmd=ROXDesktopSetRoot(cmd, image_path)
 
---if the user has 'dconf' installed, then assume they have a mate desktop and set that too
-path=filesys.find("dconf", process.getenv("PATH"))
-if strutil.strlen(path) > 0
-then
-print("dconf command found at " .. path ..". Setting background for mate desktop")
-os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
-cmd="dconf"
-end
-
-
-path=filesys.find("icewmbg", process.getenv("PATH"))
-if strutil.strlen(path) > 0
-then
-print("icewmbg command found at " .. path .. ". Setting background for icewm desktop")
-os.execute("icewmbg -r -p -i \"" .. image_path .. "\"")
-cmd="icewmbg"
-end
-
-path=filesys.find("zzzfm", process.getenv("PATH"))
-if strutil.strlen(path) > 0
-then
-print("zzzfm command found at " .. path .. ". Setting background for zzzfm/antiX desktop")
-os.execute("zzzfm --set-wallpaper \"" .. image_path .. "\"")
-cmd="zzzfm"
-end
-
-path=filesys.find("spacefm", process.getenv("PATH"))
-if strutil.strlen(path) > 0
-then
-print("spacefm command found at " .. path .. ". Setting background for spacefm/antiX desktop")
-os.execute("spacefm --set-wallpaper \"" .. image_path .. "\"")
-cmd="spacefm"
-end
-
+cmd=GenericAppSetRoot(cmd, "dconf",  " write /org/mate/desktop/background/picture-filename ", "Setting background for icewm desktop", "'" .. image_path .. "'")
+cmd=GenericAppSetRoot(cmd, "icewmbg",  " -r -p -i ", "Setting background for icewm desktop", image_path)
+cmd=GenericAppSetRoot(cmd, "zzzfm",  " --set-wallpaper ", "Setting background for zzzfm/antiX desktop", image_path)
+cmd=GenericAppSetRoot(cmd, "spacefm", " --set-wallpaper ", "Setting background for spacefm desktop", image_path)
+cmd=GenericAppSetRoot(cmd, "pcmanfm", " --wallpaper-mode=\"fit\" --set-wallpaper=", "Setting background for pcmanfm desktop", image_path)
 
 
 if strutil.strlen(cmd) == 0 then print("ERROR: no suitable command found to set root window background") end
@@ -2111,6 +2256,7 @@ print("  -resolution <resolution>                         get images matching <r
 print("  -exe_path <path>                                 colon-separated search path for 'setroot' programs. e.g. -exec_path /usr/X11R7/bin:/usr/bin")
 print("  -res <resolution>                                get images matching <resolution>")
 print("  -proxy <url>                                     use given proxy server")
+print("  -filetypes <list>                                comma-seperated list of file extensions to accept from image sources, e.g. '.jpg,.jpeg' or 'jpg,jpeg'. Be wary that most sites return .jpg, so if you leave that out of the list, you will get few (or no) images. Default is '.jpg,.jpeg,.png'")
 print("  -?                                               this help")
 print("  -help                                            this help")
 print("  --help                                           this help")
@@ -2150,19 +2296,19 @@ end
 
 
 function GetWallpaperFromSite(source)
-local url, title, description
+local url, item
 local result=false
 
 
 mod=sources:select(source)
 if mod ~= nil
 then 
-url,title,description,author=mod:get(source) 
+item=mod:get(source) 
 
-if strutil.strlen(url) > 0 
+if item ~= nil and strutil.strlen(item.url) > 0 
 then
-if blocklist:check(url) == false then result=GetWallpaper(url, source, title, description, author) 
-else print("BLOCKED: " .. url .. ". Never use this image.")
+if blocklist:check(item.url) == false then result=GetWallpaper(item.url, source, item.title, item.description, item.author) 
+else print("BLOCKED: " .. item.url .. ". Never use this image.")
 end
 
 end
@@ -2233,6 +2379,21 @@ if strutil.strlen(str) then net.setProxy(str) end
 
 end
 
+function ParseFileTypes(config)
+local toks, tok
+local filetypes={}
+toks=strutil.TOKENIZER(config, ",")
+tok=toks:next()
+while tok ~= nil
+do
+if string.sub(tok, 1, 1) ~= '.' then tok="." .. tok end
+table.insert(filetypes, tok)
+tok=toks:next()
+end
+
+return filetypes
+end
+
 
 function ParseCommandLine()
 local i, str, list, source_list, src_url
@@ -2268,6 +2429,7 @@ then
 	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
 	elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
 	elseif str=="-proxy" then settings.proxy=arg[i+1]; arg[i+1]=""
+	elseif str=="-filetypes" then settings.filetypes=ParseFileTypes(arg[i+1]); arg[i+1]=""
 	elseif str=="-?" then act="help" 
 	elseif str=="-help" then act="help"
 	elseif str=="--help" then act="help"
@@ -2291,7 +2453,6 @@ math.randomseed(os.time()+process.getpid())
 InitSettings()
 sources=InitSources()
 blocklist=InitBlocklist()
-resolution=InitResolution()
 
 process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
 
@@ -2304,7 +2465,6 @@ ProxySetup()
 
 if act=="help" then PrintHelp()
 elseif act=="version" then print("wallpaper_mgr version: " .. prog_version)
-elseif act=="random" then WallpaperFromRandomSource(source_list)
 elseif act=="info" then ShowCurrWallpaperDetails()
 elseif act=="title" then ShowCurrWallpaperTitle()
 elseif act=="list" then sources:list()
@@ -2319,6 +2479,10 @@ elseif act=="block" then blocklist:add(target)
 elseif act=="save" then SaveWallpaper(src_url, target)
 elseif act=="fave" then FaveWallpaper(src_url, target)
 elseif act=="sync" then PigeonholedSync(target)
+elseif act=="random"
+then
+  resolution=InitResolution()
+  WallpaperFromRandomSource(source_list)
 else print("unrecognized command-line.")
 end
 
