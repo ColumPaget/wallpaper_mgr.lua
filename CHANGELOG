@@ -1,3 +1,8 @@
+v3.1 (2025-11-09)
+ * support icewm, spacefm and zzzfm desktops
+ * add 'archive.org' wallpaper collection
+
+
 v3.0 (2025-04-19)
  * fix crash in wallpapers13 (pos can be nil if 'extract_resolution' fails)
  * add 'esawebb:' and 'esa:earth' sources

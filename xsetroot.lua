@@ -67,15 +67,6 @@ os.execute("gsettings set org.cinnamon.desktop.background picture-uri file:///" 
 cmd="gsettings"
 end
 
---if the user has 'dconf' installed, then assume they have a mate desktop and set that too
-path=filesys.find("dconf", process.getenv("PATH"))
-if strutil.strlen(path) > 0
-then
-print("deconf command found at " .. path ..". Setting background for mate desktop")
-os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
-cmd="dconf"
-end
-
 path=filesys.find("xfconf-query", process.getenv("PATH"))
 if strutil.strlen(path) > 0
 then
@@ -83,6 +74,42 @@ print("xfconf-query command found at " .. path .. ". Setting background for xfce
 XFCE4SetRoot(image_path)
 cmd="xfconf-query"
 end
+
+--if the user has 'dconf' installed, then assume they have a mate desktop and set that too
+path=filesys.find("dconf", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("dconf command found at " .. path ..". Setting background for mate desktop")
+os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
+cmd="dconf"
+end
+
+
+path=filesys.find("icewmbg", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("icewmbg command found at " .. path .. ". Setting background for icewm desktop")
+os.execute("icewmbg -r -p -i \"" .. image_path .. "\"")
+cmd="icewmbg"
+end
+
+path=filesys.find("zzzfm", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("zzzfm command found at " .. path .. ". Setting background for zzzfm/antiX desktop")
+os.execute("zzzfm --set-wallpaper \"" .. image_path .. "\"")
+cmd="zzzfm"
+end
+
+path=filesys.find("spacefm", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("spacefm command found at " .. path .. ". Setting background for spacefm/antiX desktop")
+os.execute("spacefm --set-wallpaper \"" .. image_path .. "\"")
+cmd="spacefm"
+end
+
+
 
 if strutil.strlen(cmd) == 0 then print("ERROR: no suitable command found to set root window background") end
 

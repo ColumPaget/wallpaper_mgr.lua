@@ -7,7 +7,7 @@ require("hash")
 require("net")
 require("dataparser")
 
-prog_version="3.0"
+prog_version="3.1"
 
 
 function source_parse(input, default_category)
@@ -38,6 +38,7 @@ end
 function SelectRandomItem(choices)
 local val, i
 
+if choices == nil then return nil end
 if #choices < 1 then return nil end
 
 for i=1,10,1

@@ -7,7 +7,7 @@ require("hash")
 require("net")
 require("dataparser")
 
-prog_version="3.0"
+prog_version="3.1"
 
 
 function source_parse(input, default_category)
@@ -38,6 +38,7 @@ end
 function SelectRandomItem(choices)
 local val, i
 
+if choices == nil then return nil end
 if #choices < 1 then return nil end
 
 for i=1,10,1
@@ -115,7 +116,7 @@ function InitSettings()
 settings={}
 settings.working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
 settings.default_sources={
-"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities", "wallpapers13:nature-wallpapers/beach", "wallpapers13:nature-wallpapers/waterfalls", "wallpapers13:nature-wallpapers/flowers", "wallpapers13:nature-wallpapers/sunset", "wallpapers13:other-topics-wallpapers/church-cathedral", "wallpapers13:nature-wallpapers/landscapes", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:nature", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "hdqwalls:nature", "hdqwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space","chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "esawebb:nebulae", "esawebb:galaxies", "esawebb:stars", "esawebb:solarsystem","wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes","wallpaperaccess:nature","wallpaperaccess:kereta-api","wallpaperaccess:city", "wallpaperaccess:universe-full-hd-pc", "wallpaperaccess:4k-architecture", "wallpaperaccess:space", "wallpaperaccess:china-sea","wallpaperaccess:mountains", "wallpaperaccess:china-mountains", "esa:earth"
+"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities", "wallpapers13:nature-wallpapers/beach", "wallpapers13:nature-wallpapers/waterfalls", "wallpapers13:nature-wallpapers/flowers", "wallpapers13:nature-wallpapers/sunset", "wallpapers13:other-topics-wallpapers/church-cathedral", "wallpapers13:nature-wallpapers/landscapes", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:nature", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "hdqwalls:nature", "hdqwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space","chandra:stars", "chandra:galaxy", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "esawebb:nebulae", "esawebb:galaxies", "esawebb:stars", "esawebb:solarsystem","wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes","wallpaperaccess:nature","wallpaperaccess:kereta-api","wallpaperaccess:city", "wallpaperaccess:universe-full-hd-pc", "wallpaperaccess:4k-architecture", "wallpaperaccess:space", "wallpaperaccess:china-sea","wallpaperaccess:mountains", "wallpaperaccess:china-mountains", "esa:earth", "archive.org:"
 }
 --"chandra:dwarf", "chandra:snr", "chandra:quasars", "chandra:nstars",  "chandra:clusters", "chandra:bh"}
 
@@ -260,6 +261,8 @@ elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
 elseif string.sub(source, 1, 16)=="wallpaperscraft:" then obj=InitWallpapersCraft()
 elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
 elseif string.sub(source, 1, 9)=="hdqwalls:" then obj=InitHDQWalls()
+elseif string.sub(source, 1, 12)=="archive.org:" then obj=InitArchiveOrg()
+elseif string.sub(source, 1, 11)=="archive.org" then obj=InitArchiveOrg()
 elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
 elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
 elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
@@ -1583,6 +1586,57 @@ return mod
 end
 
 
+
+--get images from chandra observatory webpage
+
+
+function InitArchiveOrg()
+local mod={}
+
+mod.image_urls={}
+
+
+
+mod.get=function(self, source)
+local S, XML, str, html, item, root
+local title=""
+local images={}
+
+root="https://archive.org/download/wallpaperscollection"
+print("GET: "..root)
+S=stream.STREAM(root, "r")
+if S ~= nil
+then
+	html=S:readdoc()
+	XML=xml.XML(html)
+	S:close()
+
+	tag=XML:next()
+	while tag ~= nil
+	do
+	if tag.type=="a"
+	then 
+	  str=HtmlTagExtractHRef(tag.data, "")
+		if strutil.strlen(str) > 0  and filesys.extn(str)==".jpg" and string.find(str, "thumb") == nil
+		then
+			table.insert(images, str)
+		end
+	end
+	tag=XML:next()
+	end
+end
+
+
+item=SelectRandomItem(images)
+if item==nil then return nil end
+
+return root .. "/" .. item
+
+
+end
+
+return mod
+end
 -- module to download the current daily astronomy picture from apod.nasa.gov
 
 
@@ -1707,15 +1761,6 @@ os.execute("gsettings set org.cinnamon.desktop.background picture-uri file:///" 
 cmd="gsettings"
 end
 
---if the user has 'dconf' installed, then assume they have a mate desktop and set that too
-path=filesys.find("dconf", process.getenv("PATH"))
-if strutil.strlen(path) > 0
-then
-print("deconf command found at " .. path ..". Setting background for mate desktop")
-os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
-cmd="dconf"
-end
-
 path=filesys.find("xfconf-query", process.getenv("PATH"))
 if strutil.strlen(path) > 0
 then
@@ -1723,6 +1768,42 @@ print("xfconf-query command found at " .. path .. ". Setting background for xfce
 XFCE4SetRoot(image_path)
 cmd="xfconf-query"
 end
+
+--if the user has 'dconf' installed, then assume they have a mate desktop and set that too
+path=filesys.find("dconf", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("dconf command found at " .. path ..". Setting background for mate desktop")
+os.execute("dconf write /org/mate/desktop/background/picture-filename \"'" .. image_path .. "'\"") end
+cmd="dconf"
+end
+
+
+path=filesys.find("icewmbg", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("icewmbg command found at " .. path .. ". Setting background for icewm desktop")
+os.execute("icewmbg -r -p -i \"" .. image_path .. "\"")
+cmd="icewmbg"
+end
+
+path=filesys.find("zzzfm", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("zzzfm command found at " .. path .. ". Setting background for zzzfm/antiX desktop")
+os.execute("zzzfm --set-wallpaper \"" .. image_path .. "\"")
+cmd="zzzfm"
+end
+
+path=filesys.find("spacefm", process.getenv("PATH"))
+if strutil.strlen(path) > 0
+then
+print("spacefm command found at " .. path .. ". Setting background for spacefm/antiX desktop")
+os.execute("spacefm --set-wallpaper \"" .. image_path .. "\"")
+cmd="spacefm"
+end
+
+
 
 if strutil.strlen(cmd) == 0 then print("ERROR: no suitable command found to set root window background") end
 
