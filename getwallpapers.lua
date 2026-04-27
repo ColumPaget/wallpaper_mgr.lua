@@ -28,24 +28,23 @@ local items={}
 str=source_parse(source, "nature-desktop-wallpapers-backgrounds")
 url=self.base_url .. "/collection/" .. str
 
-print("GET: "..url)
-S=stream.STREAM(url,"r")
+S=URLGet(url)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-		if tag.type=="div" 
-		then 
-				item=self:div_tag(tag.data) 
-				if item ~= nil then table.insert(items, item) end
-		end
-		tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type=="div" 
+    then 
+        item=self:div_tag(tag.data) 
+        if item ~= nil then table.insert(items, item) end
+    end
+    tag=XML:next()
+  end
 end
 
 return SelectRandomItem(items)

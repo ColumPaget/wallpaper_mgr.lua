@@ -12,20 +12,20 @@ local S
 S=stream.STREAM(source.."/*", "l")
 if S ~= nil
 then
-	line=S:readln()
-	while line ~= nil
-	do
-	line=strutil.trim(line)
-	path=source.."/"..filesys.basename(line)
-	if extn ~= nil and IsImageURL(line)==true
-	then
+  line=S:readln()
+  while line ~= nil
+  do
+  line=strutil.trim(line)
+  path=source.."/"..filesys.basename(line)
+  if extn ~= nil and IsImageURL(line)==true
+  then
     table.insert(url_list, path)
   elseif dir_list ~= nil
-	then
-	  table.insert(dir_list, path)
-	end
-	line=S:readln()
-	end
+  then
+    table.insert(dir_list, path)
+  end
+  line=S:readln()
+  end
 
 S:close()
 end
@@ -38,9 +38,8 @@ local url_list={}
 local dir_list={}
 local str
 
+print("SSH GET: "..source)
 self:readdir(source, url_list)
-
-print("GET: "..source)
 str=source .."/*"
 self:readdir(str, url_list)
 

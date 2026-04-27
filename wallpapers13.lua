@@ -32,11 +32,11 @@ toks=strutil.TOKENIZER(data, "\\S", "Q")
 tok=toks:next()
 while tok ~= nil
 do
-	if string.sub(tok, 1, 5) == 'href='
-	then 
-		return strutil.stripQuotes(string.sub(tok, 6))
-	end
-	tok=toks:next()
+  if string.sub(tok, 1, 5) == 'href='
+  then 
+    return strutil.stripQuotes(string.sub(tok, 6))
+  end
+  tok=toks:next()
 end
 
 return ""
@@ -47,19 +47,19 @@ end
 mod.find_image=function(self, XML)
 local tag, url
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "a" 
-	then 
-		url=HtmlTagExtractHRef(tag.data, "") 
-		table.insert(self.image_urls, url)
-		break
-	end
-	if tag.type == "/tag" then break end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "a" 
+  then 
+    url=HtmlTagExtractHRef(tag.data, "") 
+    table.insert(self.image_urls, url)
+    break
+  end
+  if tag.type == "/tag" then break end
 
-	tag=XML:next()
-	end
+  tag=XML:next()
+  end
 
 end
 
@@ -71,28 +71,27 @@ local selected_res=""
 
 if page_url==nil then return end
 
-print("GET: "..page_url)
-S=stream.STREAM(page_url, "r")
+S=URLGet(page_url)
 if S ~= nil
 then
-	XML=xml.XML(S:readdoc())
-	S:close()
+  XML=xml.XML(S:readdoc())
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "title"
-	then
-		title=XML:next().data
-	elseif tag.type == "a" 
-	then 
-		str=self:extract_url(tag.data) 
-		if IsImageURL(str) == true then url=str end
-	end
-	if tag.type == "/tag" then break end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "title"
+  then
+    title=XML:next().data
+  elseif tag.type == "a" 
+  then 
+    str=self:extract_url(tag.data) 
+    if IsImageURL(str) == true then url=str end
+  end
+  if tag.type == "/tag" then break end
 
-	tag=XML:next()
-	end
+  tag=XML:next()
+  end
 end
 
 return url, title
@@ -111,23 +110,22 @@ if string.sub(category, len-11) ~= "-wallpapers" then category=category .. "-wal
 url="https://www.wallpapers13.com/category/"..category.."/" 
 end
 
-print("GET: "..url)
-S=stream.STREAM(url, "r")
+S=URLGet(url)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-		if self:is_image_div(tag) == true
-		then 
-			self:find_image(XML)
-		end
-		tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if self:is_image_div(tag) == true
+    then 
+      self:find_image(XML)
+    end
+    tag=XML:next()
+  end
 end
 
 url=SelectRandomItem(self.image_urls)

@@ -5,9 +5,64 @@ require("process")
 require("filesys")
 require("hash")
 require("net")
+require("sys")
 require("dataparser")
+require("terminal")
 
-prog_version="3.2"
+prog_version="3.3"
+
+
+function URLGet(url)
+local S
+
+TermOut:puts("~eGET~0: ~c"..url .. "~0")
+TermOut:flush()
+S=stream.STREAM(url, "r")
+
+if S ~= nil
+then
+  if string.sub(url, 1, 5)=="http:" or string.sub(url, 1, 6)=="https:" 
+  then
+    if S:getvalue("HTTP:ResponseCode") ~= "200"
+    then
+      S:close()
+      S=nil
+    end
+  end
+end
+
+
+if S ~= nil then TermOut:puts(" ... ~gokay~0\n")
+else TermOut:puts(" ... ~rfailed~0\n")
+end
+
+return S
+end
+
+
+-- 'remote glob' function, currently only works for ssh
+function rglob(url)
+local S, str
+local glob={}
+
+
+S=stream.STREAM(url, "l")
+if S ~= nil
+then
+  str=S:readln()
+  while str ~= nil
+  do
+  str=strutil.trim(str)
+  table.insert(glob, str)
+  str=S:readln()
+  end
+
+  S:close()
+end
+
+return glob
+end
+
 
 
 function source_parse(input, default_category)
@@ -36,7 +91,7 @@ end
 
 
 function SelectRandomItem(choices)
-local val, i
+local val, i, item, url
 
 if choices == nil then return nil end
 if #choices < 1 then return nil end
@@ -44,9 +99,14 @@ if #choices < 1 then return nil end
 for i=1,10,1
 do
 val=math.random(#choices)
-if blocklist:check(choices[val]) == false then return choices[val] end
+item=choices[val]
+if type(item) == "table" then url=item.url
+else url=item
+end
+if blocklist:check(url) == false then return choices[val] end
 end
 
+print("NO SELECT")
 return nil
 end
 
@@ -82,68 +142,6 @@ end
 
 
 
-function GetCurrWallpaperDetails()
-local dir, S, str, toks
-local details={}
-
-dir=process.getenv("HOME").."/.local/share/wallpaper/"
-S=stream.STREAM(dir.."wallpapers.curr", "r")
-if S ~= nil
-then
-str=S:readln()
-while str ~= nil
-do
-	str=strutil.trim(str)
-	if strutil.strlen(str) > 0
-	then
-	toks=strutil.TOKENIZER(str, ":")
-	details[toks:next()]=strutil.trim(toks:remaining())
-	end
-	str=S:readln()
-end
-S:close()
-end
-
-return details
-end
-
-
-function ShowCurrWallpaperDetails()
-local key, val
-
-for key,val in pairs(GetCurrWallpaperDetails())
-do
-print(key..": "..val)
-end
-
-end
-
-
-function ShowCurrWallpaperTitle()
-local dir,S,str
-local title=""
-
-dir=process.getenv("HOME").."/.local/share/wallpaper/"
-S=stream.STREAM(dir.."wallpapers.curr", "r")
-if S ~= nil
-then
-  str=S:readln()
-	while str ~= nil
-	do
-	str=strutil.trim(str)
-	if string.sub(str, 1, 5) == "url: " then url=string.sub(str, 6) end
-	if string.sub(str, 1, 7) == "title: " then title=string.sub(str, 8) end
-  str=S:readln()
-	end
-	S:close()
-end
-
-if strutil.strlen(title) > 0 then print(title) 
-else print(filesys.basename(url))
-end
-end
-
-
 
 function IsImageURL(url)
 local extn, match
@@ -174,63 +172,190 @@ settings.default_sources={
 end
 
 
-function InitBlocklist()
+function URLListInit(name, type)
 local mod={}
 
+mod.name=name
+mod.type=type
 mod.items={}
+mod.needs_save=false
 
-mod.add=function(self, url)
-local S, str
 
+
+mod.add=function(self, url, extra)
+local S
+
+--if we are passwd a blank or nil url, don't add
 if strutil.strlen(url) == 0 then return false end
 
-for i,item in ipairs(self.items)
-do
-if item==url then return false end
-end
-
-S=stream.STREAM(settings.working_dir.."/blocked.lst", "a")
-if S ~= nil
-then
-S:writeln(url.."\n")
-S:close()
+--if it already exists, don't add
+if self.items[url] ~= nil 
+then 
+	TermOut:puts("add url ~c" .. url.. "~0 to ~e" .. self.name .. "~0... ~e~malready exists~0\n")
+else
+  TermOut:puts("add url ~c" .. url.. "~0 to ~e" .. self.name.."~0 ... ~gadded~0\n")
+  if extra == nil then extra="" end
+  self.items[url]=self.type..":"..extra
+  self.needs_save=true
 end
 
 return true
 end
 
-mod.load=function(self)
+
+
+mod.write_entry=function(self, S, url, extra)
+
+    if extra==nil then extra="" end
+    S:writeln("'"..url.."' "..extra.."\n")
+
+end
+
+
+mod.append=function(self, url, extra)
 local S, str
 
-S=stream.STREAM(settings.working_dir.."/blocked.lst", "r")
-if S ~= nil
+if self:add(url) == true
 then
-	str=S:readln()
-	while str ~= nil
-	do
-	str=strutil.trim(str)
-	table.insert(self.items, str)
-	str=S:readln()
-	end
-	S:close()
-end
-
-end
-
-mod.check=function(self, url)
-local i, item
-
-for i,item in ipairs(self.items)
-do
-if item==url then return true end
+  str=settings.working_dir.."/" .. self.name.. ".lst"
+  S=stream.STREAM(str, "a")
+  if S ~= nil
+  then
+    self:write_entry(S, url, extra)
+    S:close()
+    self.needs_save=false
+    return true
+  end
 end
 
 return false
 end
 
+
+
+mod.save=function(self)
+local S, str, url, path
+
+path=settings.working_dir.."/"..self.name..".lst+"
+S=stream.STREAM(path, "w")
+if S ~= nil
+then
+
+for url, extra in pairs(self.items)
+do
+self:write_entry(S, url, extra)
+end
+
+S:close()
+
+filesys.rename(path, settings.working_dir .. "/".. self.name .. ".lst")
+self.needs_save=false
+end
+
+return true
+end
+
+
+
+mod.load=function(self)
+local S, str, toks, url, info
+
+S=stream.STREAM(settings.working_dir.."/" .. self.name .. ".lst", "r")
+if S ~= nil
+then
+  str=S:readln()
+  while str ~= nil
+  do
+  str=strutil.trim(str)
+
+  toks=strutil.TOKENIZER(str, "\\S", "Q")
+  url=toks:next()
+  info=toks:remaining()
+  if info==nil then info="" end
+  self.items[url]=self.type..":"..info
+  
+  str=S:readln()
+  end
+  S:close()
+end
+
+end
+
+
+mod.check=function(self, url)
+local i, item
+
+if self.items[url] ~= nil then return true end
+
+return false
+end
+
 mod:load()
+
 return mod
 end
+
+function GetCurrWallpaperDetails()
+local dir, S, str, toks
+local details={}
+
+dir=process.getenv("HOME").."/.local/share/wallpaper/"
+S=stream.STREAM(dir.."wallpapers.curr", "r")
+if S ~= nil
+then
+str=S:readln()
+while str ~= nil
+do
+  str=strutil.trim(str)
+  if strutil.strlen(str) > 0
+  then
+  toks=strutil.TOKENIZER(str, ":")
+  details[toks:next()]=strutil.trim(toks:remaining())
+  end
+  str=S:readln()
+end
+S:close()
+end
+
+return details
+end
+
+
+function ShowCurrWallpaperDetails()
+local key, val
+
+for key,val in pairs(GetCurrWallpaperDetails())
+do
+print(key..": "..val)
+end
+
+end
+
+
+function ShowCurrWallpaperTitle()
+local dir,S,str
+local title=""
+
+dir=process.getenv("HOME").."/.local/share/wallpaper/"
+S=stream.STREAM(dir.."wallpapers.curr", "r")
+if S ~= nil
+then
+  str=S:readln()
+  while str ~= nil
+  do
+  str=strutil.trim(str)
+  if string.sub(str, 1, 5) == "url: " then url=string.sub(str, 6) end
+  if string.sub(str, 1, 7) == "title: " then title=string.sub(str, 8) end
+  str=S:readln()
+  end
+  S:close()
+end
+
+if strutil.strlen(title) > 0 then print(title) 
+else print(filesys.basename(url))
+end
+end
+
 
 
 
@@ -295,30 +420,33 @@ end
 
 
 mod.select=function(self, source)
-local obj
+local obj, source_type, toks
 
-if string.sub(source, 1, 5)=="bing:" then obj=InitBing()
-elseif string.sub(source, 1, 5)=="nasa:" then obj=InitNASA()
-elseif string.sub(source, 1, 8)=="chandra:" then obj=InitChandra()
-elseif string.sub(source, 1, 4)=="eso:" then obj=InitESO()
-elseif string.sub(source, 1, 4)=="esa:" then obj=InitESA("https://esa.int")
-elseif string.sub(source, 1, 10)=="esahubble:" then obj=InitESA("https://esahubble.org")
-elseif string.sub(source, 1, 8)=="esawebb:" then obj=InitESA("https://esawebb.org")
-elseif string.sub(source, 1, 13)=="wallpapers13:" then obj=InitWallpapers13()
-elseif string.sub(source, 1, 14)=="getwallpapers:" then obj=InitGetWallpapers()
-elseif string.sub(source, 1, 13)=="hipwallpaper:" then obj=InitHipWallpaper()
-elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
-elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
-elseif string.sub(source, 1, 10)=="wallhaven:" then obj=InitWallhaven()
-elseif string.sub(source, 1, 13)=="sourcesplash:" then obj=InitSourceSplash()
-elseif string.sub(source, 1, 16)=="wallpaperscraft:" then obj=InitWallpapersCraft()
-elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
-elseif string.sub(source, 1, 12)=="archive.org:" then obj=InitArchiveOrg()
-elseif string.sub(source, 1, 12)=="archive_org" then obj=InitArchiveOrg()
-elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
-elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
-elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
-elseif string.sub(source, 1, 4)=="ssh:" then obj=InitSSH()
+toks=strutil.TOKENIZER(source, ":")
+source_type=toks:next()
+
+if source_type == "bing" then obj=InitBing()
+elseif source_type == "nasa" then obj=InitNASA()
+elseif source_type == "chandra" then obj=InitChandra()
+elseif source_type == "eso" then obj=InitESO()
+elseif source_type == "esa" then obj=InitESA("https://esa.int")
+elseif source_type == "esahubble" then obj=InitESA("https://esahubble.org")
+elseif source_type == "esawebb" then obj=InitESA("https://esawebb.org")
+elseif source_type == "wallpapers13" then obj=InitWallpapers13()
+elseif source_type == "getwallpapers" then obj=InitGetWallpapers()
+elseif source_type == "hipwallpaper" then obj=InitHipWallpaper()
+elseif source_type == "hipwallpapers" then obj=InitHipWallpaper()
+elseif source_type == "wikimedia" then obj=InitWikimedia()
+elseif source_type == "wallhaven" then obj=InitWallhaven()
+elseif source_type == "sourcesplash" then obj=InitSourceSplash()
+elseif source_type == "wallpaperscraft" then obj=InitWallpapersCraft()
+elseif source_type == "suwalls" then obj=InitSUWalls()
+elseif source_type == "archive.org" then obj=InitArchiveOrg()
+elseif source_type == "archive_org" then obj=InitArchiveOrg()
+elseif source_type == "local" then obj=InitLocalFiles()
+elseif source_type == "faves" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
+elseif source_type == "playlist" then obj=InitPlaylist()
+elseif source_type == "ssh" then obj=InitSSH()
 end
 
 return obj
@@ -331,8 +459,8 @@ local locals_list={}
 
 for i, str in ipairs(source_list)
 do
-	stype=string.sub(str, 1, 6)
-	if stype=="local:" or stype=="faves:" then table.insert(locals_list, str) end
+  stype=string.sub(str, 1, 6)
+  if stype=="local:" or stype=="faves:" then table.insert(locals_list, str) end
 end
 
 return locals_list
@@ -353,7 +481,7 @@ local sources
 sources=self:load(true)
 for i,item in ipairs(sources)
 do
-	if item==target then sources[i]="#"..item end
+  if item==target then sources[i]="#"..item end
 end
 self:save(sources)
 
@@ -367,7 +495,7 @@ local sources
 sources=self:load(true)
 for i,item in ipairs(sources)
 do
-	if item == "#"..target then sources[i]=target end
+  if item == "#"..target then sources[i]=target end
 end
 self:save(sources)
 
@@ -402,7 +530,7 @@ local sources
 sources=self:load(true)
 for i,item in ipairs(sources)
 do
-	if item==target then sources[i]="" end
+  if item==target then sources[i]="" end
 end
 self:save(sources)
 
@@ -413,8 +541,8 @@ end
 mod.sources=mod:load()
 if mod.sources == nil or #mod.sources == 0
 then
-	mod:save(settings.default_sources)
-	mod.sources=mod:load()
+  mod:save(settings.default_sources)
+  mod.sources=mod:load()
 end
 
 
@@ -437,13 +565,13 @@ toks=strutil.TOKENIZER(str, "\\S", "Q")
 tok=toks:next()
 while tok ~= nil
 do
-	if tok == identifier then is_target=true end
+  if tok == identifier then is_target=true end
 
-	len=strutil.strlen(attrib)
-	if string.sub(tok, 1, len) == attrib
-	then 
-	 value=strutil.stripQuotes(string.sub(tok, len+1))
-	end
+  len=strutil.strlen(attrib)
+  if string.sub(tok, 1, len) == attrib
+  then 
+   value=strutil.stripQuotes(string.sub(tok, len+1))
+  end
 tok=toks:next()
 end
 
@@ -477,14 +605,14 @@ if strutil.strlen(source) < 0 then return nil end
 S=stream.STREAM(string.sub(source, 10), "r")
 if S ~= nil
 then
-	str=S:readln()
-	while str ~= nil
-	do
-	str=strutil.trim(str)
-	if strutil.strlen(str) > 0 then table.insert(items, str) end
-	str=S:readln()
-	end
-	S:close()
+  str=S:readln()
+  while str ~= nil
+  do
+  str=strutil.trim(str)
+  if strutil.strlen(str) > 0 then table.insert(items, str) end
+  str=S:readln()
+  end
+  S:close()
 end
 
 return SelectRandomItem(items)
@@ -510,35 +638,36 @@ local S, XML, tag, page_url, str, category, item
 
 page_url=self.base_url
 category=source_parse(source,"")
-if strutil.strlen(category) > 0 then page_url=page_url..  "?mkt=" .. category end
 
-print("GET: "..page_url)
-S=stream.STREAM(page_url, "r")
+if strutil.strlen(category) == 0 then category="en_US" end
+
+page_url=page_url..  "?mkt=" .. category 
+
+S=URLGet(page_url)
 if S ~= nil
 then
-	str=S:readdoc()
-	XML=xml.XML(str)
-	S:close()
+  str=S:readdoc()
+  XML=xml.XML(str)
+  S:close()
 
   item={}
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-		if tag.type=="a" 
-		then 
-			str=HtmlTagExtractAttrib(tag.data, 'class')
-			if str == "downloadLink " then item.url=self.base_url .. HtmlTagExtractAttrib(tag.data, 'href') 
-			elseif str== "title" then item.title=XML:next().data
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type=="a" 
+    then 
+      str=HtmlTagExtractAttrib(tag.data, 'class')
+      if str == "downloadLink" then item.url=self.base_url .. HtmlTagExtractAttrib(tag.data, 'href') 
+      elseif str== "title" then item.title=XML:next().data
       end
-		elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then item.description=XML:next().data
-		elseif tag.type=='div' and tag.data=='class="copyright" id="copyright"' then item.author=XML:next().data
-		-- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then item.title=XML:next().value
-		end
-		tag=XML:next()
-	end
+    elseif tag.type=='span' and tag.data=='class="text" id="iotd_desc"' then item.description=XML:next().data
+    elseif tag.type=='div' and tag.data=='class="copyright" id="copyright"' then item.author=XML:next().data
+    -- elseif tag.type=='h3' and tag.data=='class="vs_bs_title" id="iotd_title"' then item.title=XML:next().value
+    end
+    tag=XML:next()
+  end
 
-	print("ITEM: ".. tostring(item.url))
 end
 
 return item
@@ -575,12 +704,12 @@ end
 mod.get_title=function(XML)
 local tag
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type=="b" then return XML:next().data end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type=="b" then return XML:next().data end
+  tag=XML:next()
+  end
 
 return ""
 end
@@ -589,29 +718,28 @@ mod.get=function(self, source)
 local S, XML, tag, str, html, item
 
 str="https://apod.nasa.gov/apod/astropix.html"
-print("GET: "..str)
-S=stream.STREAM(str, "r")
+S=URLGet(str)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-		if tag.type=="a"
-		then
-		 str=self:anchor_tag(tag.data)
-		 if IsImageURL(str) == true
-		 then
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type=="a"
+    then
+     str=self:anchor_tag(tag.data)
+     if IsImageURL(str) == true
+     then
      item={}
-		 item.url=str
-		 item.title=self.get_title(XML)
-		 end
-		end
-		tag=XML:next()
-	end
+     item.url=str
+     item.title=self.get_title(XML)
+     end
+    end
+    tag=XML:next()
+  end
 end
 
 return item
@@ -713,24 +841,23 @@ page=math.random()
 page=page * max_page
 page=page + 1 -- pages start at 1, not zero
 
-	if strutil.strlen(category) > 0
-	then
-	-- https://esahubble.org/images/archive/category/galaxies/page/3/
-	url=self.base_url .. "/images/archive/category/".. category .. "/page/"..string.format("%d", math.floor(page)).."/"
-	else
-	url=self.base_url .. "/images/" .. "/page/"..string.format("%d", math.floor(page)).."/"
-	end
+  if strutil.strlen(category) > 0
+  then
+  -- https://esahubble.org/images/archive/category/galaxies/page/3/
+  url=self.base_url .. "/images/archive/category/".. category .. "/page/"..string.format("%d", math.floor(page)).."/"
+  else
+  url=self.base_url .. "/images/" .. "/page/"..string.format("%d", math.floor(page)).."/"
+  end
 
-print("GET: "..url)
-	S=stream.STREAM(url, "r")
-	if S == nil then return nil end
-	if S:getvalue("HTTP:ResponseCode") ~= "200"
-	then
-	S:close()
-	return nil
-	end
+  S=URLGet(url)
+  if S == nil then return nil end
+  if S:getvalue("HTTP:ResponseCode") ~= "200"
+  then
+  S:close()
+  return nil
+  end
 
-	return S
+  return S
 end
 
 
@@ -744,16 +871,16 @@ if S == nil then S=self:hubwebb_open_page(category, 1) end
 
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	  if tag.type == "script" then self:hubwebb_read_script(XML:next().data) end
-	  tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type == "script" then self:hubwebb_read_script(XML:next().data) end
+    tag=XML:next()
+  end
 end
 
 item=SelectRandomItem(self.images)
@@ -776,22 +903,22 @@ local img, tag, url
 url=HtmlTagExtractAttrib(img_data, "src")
 if IsImageURL(url) == true
 then
-	img={}
+  img={}
   img.url=url
 
   -- now we look through remaining tags for an image title
   -- if we hit '</tr>' then we're at the end of stuff relating 
   -- to this image
-	tag=XML:next()
-	while tag ~= nil and tag.type ~= "/tr"
-	do
-		if tag.type=="a"
-		then
-			tag=XML:next()
-			img.title=tag.data
-		end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil and tag.type ~= "/tr"
+  do
+    if tag.type=="a"
+    then
+      tag=XML:next()
+      img.title=tag.data
+    end
+  tag=XML:next()
+  end
 end
 
 return img
@@ -804,22 +931,22 @@ local tag, str, width, img
 tag=XML:next()
 while tag ~= nil
 do
-	if tag.type == "img"
-	then
-	--some esa earth observation images are very low resolution
+  if tag.type == "img"
+  then
+  --some esa earth observation images are very low resolution
   --and do not make good backgrounds. Fortunately they are tagged with a 'width' value of 60
   --which makes them distinguishable from higher-res images that have a width of 100
   --other esa image galleries don't have this width value, and so if width is nil we can also use the image
-  	width=HtmlTagExtractAttrib(tag.data, "width")
+    width=HtmlTagExtractAttrib(tag.data, "width")
     if width==nil or tonumber(width) > 60
     then
-    	img=self:esa_extract_image(tag.data, XML)
-    	if img ~= nil then table.insert(self.images, img) end
-  	end
+      img=self:esa_extract_image(tag.data, XML)
+      if img ~= nil then table.insert(self.images, img) end
+    end
   end
 tag=XML:next()
 end
-	
+  
 end
 
 
@@ -838,20 +965,19 @@ end
 
 url=self.base_url .. "/Applications/Observing_the_Earth/Image_archive"
 
-print("GET: "..url)
-S=stream.STREAM(url, "")
+S=URLGet(url)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	  if tag.type == "div" and tag.data == "class=\"article__block\"" then self:esa_read_article(XML) end
-	  tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type == "div" and tag.data == "class=\"article__block\"" then self:esa_read_article(XML) end
+    tag=XML:next()
+  end
 end
 
 item=SelectRandomItem(self.images)
@@ -912,20 +1038,19 @@ local title=""
 category=source_parse(source, "nebula")
 str="https://www.eso.org/public/images/?search=" .. category 
 
-print("GET: "..str)
-S=stream.STREAM(str, "r")
+S=URLGet(str)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	  if tag.type=="script" then self:consider_script(XML:next().data)end
-	  tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type=="script" then self:consider_script(XML:next().data)end
+    tag=XML:next()
+  end
 end
 
 item=SelectRandomItem(self.images)
@@ -954,41 +1079,40 @@ local images={}
 category=source_parse(source, "galaxy")
 str="https://chandra.harvard.edu/resources/desktops_" .. category .. ".html"
 
-print("GET: "..str)
-S=stream.STREAM(str, "r")
+S=URLGet(str)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type=="span" 
-	then
-	 tag=XML:next()
-	 title=tag.data
-	elseif tag.type=="a"
-	then 
-	  str=HtmlTagExtractHRef(tag.data, "")
-		if strutil.strlen(str) > 0 
-		then
-			tag=XML:next()
-			if tag==nil then break end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type=="span" 
+  then
+   tag=XML:next()
+   title=tag.data
+  elseif tag.type=="a"
+  then 
+    str=HtmlTagExtractHRef(tag.data, "")
+    if strutil.strlen(str) > 0 
+    then
+      tag=XML:next()
+      if tag==nil then break end
 
-			if string.find(tag.data, ' ') == nil and string.find(tag.data, 'x') ~= nil
-			then
-			item={}
+      if string.find(tag.data, ' ') == nil and string.find(tag.data, 'x') ~= nil
+      then
+      item={}
       item.url="https://chandra.harvard.edu/" .. str
-			item.title=title
-			item.resolution=tag.data
-			table.insert(images, item)
-			end
-		end
-	end
-	tag=XML:next()
-	end
+      item.title=title
+      item.resolution=tag.data
+      table.insert(images, item)
+      end
+    end
+  end
+  tag=XML:next()
+  end
 end
 
 
@@ -1013,29 +1137,28 @@ local items={}
 category=source_parse(source, "nature")
 url="https://hipwallpaper.com/search?q="..category
 
-print("GET: "..url)
-S=stream.STREAM(url,"r")
+S=URLGet(url)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-		if tag.type=="a" 
-		then 
-			url=HtmlTagExtractAttrib(tag.data, 'data-bs-src')
-			if IsImageURL(url) == true
-			then 
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type=="a" 
+    then 
+      url=HtmlTagExtractAttrib(tag.data, 'data-bs-src')
+      if IsImageURL(url) == true
+      then 
       item={}
-			item.url=url
-			table.insert(items, item) 
-			end
-		end
-		tag=XML:next()
-	end
+      item.url=url
+      table.insert(items, item) 
+      end
+    end
+    tag=XML:next()
+  end
 end
 
 
@@ -1056,30 +1179,41 @@ mod.root_dir=""
 if strutil.strlen(root_dir) > 0 then mod.root_dir=filesys.pathaddslash(root_dir) end
 mod.files={}
 
+
+mod.new_image=function(self, path)
+local item={}
+
+item.url=path
+item.title=""
+item.description=""
+item.author=""
+table.insert(self.files, item)
+end
+
 mod.get=function(self, source)
 local item, path, str, GLOB, len
 
 path=filesys.pathaddslash(self.root_dir..string.sub(source, 7))
 
-print("GET: "..path)
+print("GET LOCALFILES: "..path)
 
 GLOB=filesys.GLOB(path.."*")
 item=GLOB:next()
 while item ~= nil
 do
-	if GLOB:info().type == "file"
-	then
-	 table.insert(self.files, item)
-	elseif GLOB:info().type == "directory" and string.sub(item, 1, 1) ~= "."
-	then
-	 len=strutil.strlen(self.root_dir)
-	 if len > 0 and string.sub(item, 1, len)==self.root_dir then str=string.sub(item, len) 
-	 else str=item
-	 end
-	 self:get("local:" .. str)
-	end
+  if GLOB:info().type == "file"
+  then
+   self:new_image(item)
+  elseif GLOB:info().type == "directory" and string.sub(item, 1, 1) ~= "."
+  then
+   len=strutil.strlen(self.root_dir)
+   if len > 0 and string.sub(item, 1, len)==self.root_dir then str=string.sub(item, len) 
+   else str=item
+   end
+   self:get("local:" .. str)
+  end
 
-	item=GLOB:next()
+  item=GLOB:next()
 end
 
 return SelectRandomItem(self.files)
@@ -1088,14 +1222,18 @@ end
 
 
 mod.add_image=function(self, url, source)
-local path, str
+local dir, path, str
 
-path=string.sub(source, 7).."/"
-filesys.mkdirPath(path)
-print("mkdir: " .. path)
 str=hash.hashstr(url, "md5", "p64") .. "-" .. filesys.basename(url)
-print("fave:" .. path..str)
-filesys.copy(url, path..str)
+dir=string.sub(source, 7).."/"
+path=dir .. str
+if filesys.exists(path) == false
+then
+filesys.mkdirPath(dir)
+filesys.copy(url, path)
+end
+
+
 end
 
 return mod
@@ -1134,11 +1272,11 @@ toks=strutil.TOKENIZER(data, "\\S", "Q")
 tok=toks:next()
 while tok ~= nil
 do
-	if string.sub(tok, 1, 5) == 'href='
-	then 
-		return strutil.stripQuotes(string.sub(tok, 6))
-	end
-	tok=toks:next()
+  if string.sub(tok, 1, 5) == 'href='
+  then 
+    return strutil.stripQuotes(string.sub(tok, 6))
+  end
+  tok=toks:next()
 end
 
 return ""
@@ -1149,19 +1287,19 @@ end
 mod.find_image=function(self, XML)
 local tag, url
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "a" 
-	then 
-		url=HtmlTagExtractHRef(tag.data, "") 
-		table.insert(self.image_urls, url)
-		break
-	end
-	if tag.type == "/tag" then break end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "a" 
+  then 
+    url=HtmlTagExtractHRef(tag.data, "") 
+    table.insert(self.image_urls, url)
+    break
+  end
+  if tag.type == "/tag" then break end
 
-	tag=XML:next()
-	end
+  tag=XML:next()
+  end
 
 end
 
@@ -1173,28 +1311,27 @@ local selected_res=""
 
 if page_url==nil then return end
 
-print("GET: "..page_url)
-S=stream.STREAM(page_url, "r")
+S=URLGet(page_url)
 if S ~= nil
 then
-	XML=xml.XML(S:readdoc())
-	S:close()
+  XML=xml.XML(S:readdoc())
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "title"
-	then
-		title=XML:next().data
-	elseif tag.type == "a" 
-	then 
-		str=self:extract_url(tag.data) 
-		if IsImageURL(str) == true then url=str end
-	end
-	if tag.type == "/tag" then break end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "title"
+  then
+    title=XML:next().data
+  elseif tag.type == "a" 
+  then 
+    str=self:extract_url(tag.data) 
+    if IsImageURL(str) == true then url=str end
+  end
+  if tag.type == "/tag" then break end
 
-	tag=XML:next()
-	end
+  tag=XML:next()
+  end
 end
 
 return url, title
@@ -1213,23 +1350,22 @@ if string.sub(category, len-11) ~= "-wallpapers" then category=category .. "-wal
 url="https://www.wallpapers13.com/category/"..category.."/" 
 end
 
-print("GET: "..url)
-S=stream.STREAM(url, "r")
+S=URLGet(url)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-		if self:is_image_div(tag) == true
-		then 
-			self:find_image(XML)
-		end
-		tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if self:is_image_div(tag) == true
+    then 
+      self:find_image(XML)
+    end
+    tag=XML:next()
+  end
 end
 
 url=SelectRandomItem(self.image_urls)
@@ -1275,24 +1411,23 @@ local items={}
 str=source_parse(source, "nature-desktop-wallpapers-backgrounds")
 url=self.base_url .. "/collection/" .. str
 
-print("GET: "..url)
-S=stream.STREAM(url,"r")
+S=URLGet(url)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-		if tag.type=="div" 
-		then 
-				item=self:div_tag(tag.data) 
-				if item ~= nil then table.insert(items, item) end
-		end
-		tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type=="div" 
+    then 
+        item=self:div_tag(tag.data) 
+        if item ~= nil then table.insert(items, item) end
+    end
+    tag=XML:next()
+  end
 end
 
 return SelectRandomItem(items)
@@ -1317,17 +1452,16 @@ local images={}
 category=source_parse(source, "galaxy")
 url="https://www.sourcesplash.com/api/search?q=" .. category
 
-print("GET: "..url)
-S=stream.STREAM(url, "r")
+S=URLGet(url)
 if S ~= nil
 then
-	str=S:readdoc()
-	P=dataparser.PARSER("json", str)
-	S:close()
+  str=S:readdoc()
+  P=dataparser.PARSER("json", str)
+  S:close()
 
-	items=P:open("photos")
-	item=items:next()
-	while item ~= nil
+  items=P:open("photos")
+  item=items:next()
+  while item ~= nil
   do
   image={}
   image.title=item:value("description")
@@ -1335,8 +1469,8 @@ then
   image.resolution=item:value("width") .. "x" ..item:value("height")
   image.author=item:value("author")
 
-	table.insert(images, image)
-	item=items:next()
+  table.insert(images, image)
+  item=items:next()
   end
 end
 
@@ -1372,9 +1506,9 @@ if strutil.strlen(str) < 1 then return false end
 path="/" .. category .. "/" 
 if string.sub(str, 1, strutil.strlen(path) ) == path
 then 
-	path=path.."page/"
-	if string.sub(str, 1, strutil.strlen(path) ) == path then return false end
-	return true
+  path=path.."page/"
+  if string.sub(str, 1, strutil.strlen(path) ) == path then return false end
+  return true
 end
 
 return false
@@ -1390,23 +1524,23 @@ if strutil.strlen(page) == 0 then return nil end
 S=stream.STREAM("https://suwalls.com" .. page, "")
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "title"
-	then
-	title=XML:next().value
-	elseif tag.type == "a"
-	then
-		str=HtmlTagExtractHRef(tag.data, 'class="dlink"') 
-		if strutil.strlen(str) > 0 then url=str end
-	end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "title"
+  then
+  title=XML:next().value
+  elseif tag.type == "a"
+  then
+    str=HtmlTagExtractHRef(tag.data, 'class="dlink"') 
+    if strutil.strlen(str) > 0 then url=str end
+  end
+  tag=XML:next()
+  end
 end
 
 return url, title
@@ -1418,28 +1552,27 @@ local S, html, str, XML, category, item
 
 category=source_parse(source, "nature")
 str="https://suwalls.com/" .. category
-print("GET: "..str)
 
-S=stream.STREAM(str, "")
+S=URLGet(str)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "a"
-	then
-		str=HtmlTagExtractHRef(tag.data,"")
-		if str ~= nil
-		then
-		if self:is_image_page(str, category) then table.insert(self.pages, str) end
-		end
-	end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "a"
+  then
+    str=HtmlTagExtractHRef(tag.data,"")
+    if str ~= nil
+    then
+    if self:is_image_page(str, category) then table.insert(self.pages, str) end
+    end
+  end
+  tag=XML:next()
+  end
 end
 
 str=SelectRandomItem(self.pages)
@@ -1467,24 +1600,24 @@ if strutil.strlen(page) == 0 then return nil end
 S=stream.STREAM(page, "")
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-  	  if tag.type == "img"
-	  then
-	    str=HtmlTagExtractHRef(tag.data, 'class="wallpaper__image"', "src") 
-	    if strutil.strlen(str) > 0 then url=str end
-	  elseif tag.type == "title"
-	  then
-	    tag=XML:next()
-	    title=tag.data
-	  end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+      if tag.type == "img"
+    then
+      str=HtmlTagExtractHRef(tag.data, 'class="wallpaper__image"', "src") 
+      if strutil.strlen(str) > 0 then url=str end
+    elseif tag.type == "title"
+    then
+      tag=XML:next()
+      title=tag.data
+    end
+  tag=XML:next()
+  end
 end
 
 return url, title
@@ -1497,9 +1630,7 @@ local S, html, str, XML, category, len, item
 category=source_parse(source, "cities")
 str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080/page%d", category, math.random(100))
 
-print("GET: ".. str)
-S=stream.STREAM(str, "")
-
+S=URLGet(str)
 if S == nil or S:getvalue("HTTP:ResponseCode") ~= "200"
 then
 str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080", category)
@@ -1508,21 +1639,21 @@ end
 
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "a" and string.sub(tag.data, 1, 24) == 'class="wallpapers__link"'
-	then
-		
-		str=HtmlTagExtractHRef(tag.data,"")
-		if str ~= nil then table.insert(self.pages, str) end
-	end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "a" and string.sub(tag.data, 1, 24) == 'class="wallpapers__link"'
+  then
+    
+    str=HtmlTagExtractHRef(tag.data,"")
+    if str ~= nil then table.insert(self.pages, str) end
+  end
+  tag=XML:next()
+  end
 end
 
 str=SelectRandomItem(self.pages)
@@ -1552,31 +1683,30 @@ local images={}
 category=source_parse(source, "nature")
 url="https://wallhaven.cc/api/v1/search?q=" .. category
 
-print("GET: "..url)
-S=stream.STREAM(url, "r")
+S=URLGet(url)
 if S ~= nil
 then
-	str=S:readdoc()
-	P=dataparser.PARSER("json", str)
-	S:close()
+  str=S:readdoc()
+  P=dataparser.PARSER("json", str)
+  S:close()
 
-	items=P:open("data")
-	item=items:next()
-	while item ~= nil
+  items=P:open("data")
+  item=items:next()
+  while item ~= nil
   do
   url=strutil.unQuote(item:value("path"))
 
   if IsImageURL(url) == true
-	then
+  then
     image={}
     image.url=url
     image.title=item:value("id")
     image.resolution=item:value("resolution")
 
-  	table.insert(images, image)
-	end
+    table.insert(images, image)
+  end
 
-	item=items:next()
+  item=items:next()
   end
 end
 
@@ -1604,26 +1734,25 @@ mod.get_image=function(self, page)
 local S, html, XML, str, tag
 local url=""
 
-print("GET: "..page)
 if strutil.strlen(page) > 0
 then
-S=stream.STREAM(page)
+S=URLGet(page)
 if S ~= nil
 then
-	html=S:readdoc()
-	S:close()
+  html=S:readdoc()
+  S:close()
 
-	XML=xml.XML(html)
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == 'div' and tag.data == 'class="fullImageLink" id="file"'
-	then
-	  tag=XML:next()
-		url=HtmlTagExtractHRef(tag.data)
-	end
-	tag=XML:next()
-	end
+  XML=xml.XML(html)
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == 'div' and tag.data == 'class="fullImageLink" id="file"'
+  then
+    tag=XML:next()
+    url=HtmlTagExtractHRef(tag.data)
+  end
+  tag=XML:next()
+  end
 end
 end
 
@@ -1637,26 +1766,25 @@ local next_page=""
 if strutil.strlen(page) ==0 then return nil end
 
 str="https://commons.wikimedia.org"..page
-print("GET: "..str)
 
-S=stream.STREAM(str, "r")
+S=URLGet(str)
 if S ~= nil
 then
-	html=S:readdoc()
-	S:close()
+  html=S:readdoc()
+  S:close()
 
-	XML=xml.XML(html)
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == 'a'
-	then
-		url=HtmlTagExtractHRef(tag.data, 'class="mw-file-description"')
-		if strutil.strlen(url) > 0 then table.insert(mod.pages, self.base_url .. url) 
-		end
-	end
-	tag=XML:next()
-	end
+  XML=xml.XML(html)
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == 'a'
+  then
+    url=HtmlTagExtractHRef(tag.data, 'class="mw-file-description"')
+    if strutil.strlen(url) > 0 then table.insert(mod.pages, self.base_url .. url) 
+    end
+  end
+  tag=XML:next()
+  end
 end
 
 return next_page
@@ -1718,28 +1846,26 @@ if strutil.strlen(source) ==0 then return nil end
 collection=source_parse(source, "wallpaperscollection")
 root="https://archive.org/download/" .. collection
 
-
-print("GET: "..root)
-S=stream.STREAM(root, "r")
+S=URLGet(root)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type=="a"
-	then 
-	  str=HtmlTagExtractHRef(tag.data, "")
-		if strutil.strlen(str) > 0  and IsImageURL(str) == true and string.find(str, "thumb") == nil
-		then
-			table.insert(images, str)
-		end
-	end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type=="a"
+  then 
+    str=HtmlTagExtractHRef(tag.data, "")
+    if strutil.strlen(str) > 0  and IsImageURL(str) == true and string.find(str, "thumb") == nil
+    then
+      table.insert(images, str)
+    end
+  end
+  tag=XML:next()
+  end
 end
 
 
@@ -1769,20 +1895,20 @@ local S
 S=stream.STREAM(source.."/*", "l")
 if S ~= nil
 then
-	line=S:readln()
-	while line ~= nil
-	do
-	line=strutil.trim(line)
-	path=source.."/"..filesys.basename(line)
-	if extn ~= nil and IsImageURL(line)==true
-	then
+  line=S:readln()
+  while line ~= nil
+  do
+  line=strutil.trim(line)
+  path=source.."/"..filesys.basename(line)
+  if extn ~= nil and IsImageURL(line)==true
+  then
     table.insert(url_list, path)
   elseif dir_list ~= nil
-	then
-	  table.insert(dir_list, path)
-	end
-	line=S:readln()
-	end
+  then
+    table.insert(dir_list, path)
+  end
+  line=S:readln()
+  end
 
 S:close()
 end
@@ -1795,9 +1921,8 @@ local url_list={}
 local dir_list={}
 local str
 
+print("SSH GET: "..source)
 self:readdir(source, url_list)
-
-print("GET: "..source)
 str=source .."/*"
 self:readdir(str, url_list)
 
@@ -1872,7 +1997,7 @@ local path
 path=filesys.find(filename, process.getenv("PATH"))
 if strutil.strlen(path) > 0
 then
-print(filename .. " command found at " .. path ..". " .. title)
+TermOut:puts("~m"..filename .. "~0 command found at ~e" .. path .."~0. " .. title.."\n")
 os.execute(path .. invocation ..  "\"" .. image_path .. "\"") 
 found=filename
 end
@@ -1887,14 +2012,14 @@ local i, item, toks, str, path, cmd
 
 for i,item in ipairs(programs)
 do
-	toks=strutil.TOKENIZER(item, "\\S")
-	str=toks:next()
-	path=filesys.find(str, process.getenv("PATH"))
-	if strutil.strlen(path) > 0
-	then 
+  toks=strutil.TOKENIZER(item, "\\S")
+  str=toks:next()
+  path=filesys.find(str, process.getenv("PATH"))
+  if strutil.strlen(path) > 0
+  then 
   cmd=path.." "..toks:remaining() .. " " 
-	break
-	end
+  break
+  end
 end
 
 return cmd
@@ -1912,7 +2037,7 @@ end
 if strutil.strlen(cmd) > 0 
 then
 cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
-print("setting X11 root window with: "..cmd)
+TermOut:puts("setting ~mX11~0 root window with: ~e"..cmd.."~0\n")
 os.execute(cmd .. image_path)
 end
 
@@ -1933,9 +2058,9 @@ cmd=X11SetRoot(image_path)
 path=filesys.find("gsettings", process.getenv("PATH"))
 if strutil.strlen(path) > 0 
 then 
-print("gsettings command found at ".. path ..". Setting background for gnome desktop")
+TermOut:puts("~mgsettings~0 command found at ~e".. path .."~0. Setting background for gnome desktop.\n")
 os.execute("gsettings set org.gnome.desktop.background picture-uri file:///" .. image_path) 
-print("gsettings command found at ".. path ..". Setting background for cinnamon desktop")
+TermOut:puts("~mgsettings~0 command found at ~e".. path .."~0. Setting background for cinnamon desktop\n")
 os.execute("gsettings set org.cinnamon.desktop.background picture-uri file:///" .. image_path) 
 cmd="gsettings"
 end
@@ -1954,24 +2079,6 @@ if strutil.strlen(cmd) == 0 then print("ERROR: no suitable command found to set 
 
 end
 
-function GetWallpaperOpenURL(url)
-local S
-
-S=stream.STREAM(url, "r")
-if S ~= nil
-then
-	if string.sub(url, 1, 5)=="http:" or string.sub(url, 1, 6)=="https:" 
-	then
-		if S:getvalue("HTTP:ResponseCode") ~= "200"
-		then
-			S:close()
-			return(nil)
-		end
-  end
-end
-
-return S
-end
 
 
 
@@ -1981,16 +2088,14 @@ local result=false
 
 if url==nil then return false end
 
-print("GET: "..url)
-
 fname=filesys.pathaddslash(settings.working_dir) .. "current-wallpaper.jpg"
 filesys.mkdirPath(fname)
 
-S=GetWallpaperOpenURL(url)
+S=URLGet(url)
 if S ~= nil
 then
-	if S:copy(fname) > 0 then result=true end
-	S:close()
+  if S:copy(fname) > 0 then result=true end
+  S:close()
 
   if strutil.strlen(process.getenv("DISPLAY"))==0 then process.setenv("DISPLAY", ":0") end
   SetRoot(fname)
@@ -1998,22 +2103,22 @@ then
   S=stream.STREAM(settings.working_dir.."wallpapers.log", "a")
   if S ~= nil
   then
-	  str=url.." source='"..source.."'"
-	  if strutil.strlen(title) > 0 then str=str.." title='"..title.."'" end
-	  str=str.."\n"
-	  S:writeln(str)
-	  S:close()
+    str=url.." source='"..source.."'"
+    if strutil.strlen(title) > 0 then str=str.." title='"..title.."'" end
+    str=str.."\n"
+    S:writeln(str)
+    S:close()
   end
 
   S=stream.STREAM(settings.working_dir.."wallpapers.curr", "w")
   if S ~= nil
   then
-	  S:writeln("url: "..url.."\n")
-	  S:writeln("source: "..source.."\n")
-	  if strutil.strlen(title) > 0 then S:writeln("title: "..title.."\n") end
-	  if strutil.strlen(description) > 0 then S:writeln("description: "..description.."\n") end
-	  if strutil.strlen(author) > 0 then S:writeln("author: "..author.."\n") end
-	  S:close()
+    S:writeln("url: "..url.."\n")
+    S:writeln("source: "..source.."\n")
+    if strutil.strlen(title) > 0 then S:writeln("title: "..title.."\n") end
+    if strutil.strlen(description) > 0 then S:writeln("description: "..description.."\n") end
+    if strutil.strlen(author) > 0 then S:writeln("author: "..author.."\n") end
+    S:close()
   end
 end
 
@@ -2066,19 +2171,19 @@ local resolution=""
 S=stream.STREAM("cmd:xwininfo -root", "")
 if S ~= nil
 then
-	str=S:readln()
-	while str ~= nil
-	do
-	str=strutil.trim(str)
-	if string.sub(str,1,10) == "-geometry "
-	then
+  str=S:readln()
+  while str ~= nil
+  do
+  str=strutil.trim(str)
+  if string.sub(str,1,10) == "-geometry "
+  then
 print(str)
-		resolution=string.sub(str, 11)
-		pos=string.find(resolution, '+')
-		if pos ~= nil then resolution=string.sub(resolution, 1, pos-1) end
-	end
-	str=S:readln()
-	end
+    resolution=string.sub(str, 11)
+    pos=string.find(resolution, '+')
+    if pos ~= nil then resolution=string.sub(resolution, 1, pos-1) end
+  end
+  str=S:readln()
+  end
 end
 
 print(resolution)
@@ -2099,13 +2204,13 @@ then
 str=S:readln()
 while str ~= nil
 do
-	str=strutil.trim(str)
-	if string.sub(str, 1, 33) == "_NET_DESKTOP_GEOMETRY(CARDINAL) ="
-	then
-	str=string.sub(str, 34)
-	resolution=string.gsub(str, ' ', '')
-	resolution=string.gsub(resolution, ',', 'x')
-	end
+  str=strutil.trim(str)
+  if string.sub(str, 1, 33) == "_NET_DESKTOP_GEOMETRY(CARDINAL) ="
+  then
+  str=string.sub(str, 34)
+  resolution=string.gsub(str, ' ', '')
+  resolution=string.gsub(resolution, ',', 'x')
+  end
 str=S:readln()
 end
 S:close()
@@ -2136,16 +2241,16 @@ mod.calc_diff=function(self, target, new)
 local xdiff, ydiff, target_toks, new_toks
 local val1, val2
 
-	target_toks=strutil.TOKENIZER(target, "x")
-	new_toks=strutil.TOKENIZER(new, "x")
-	val=tonumber(new_toks:next())
-	if val == nil then return nil end
-	xdiff=tonumber(target_toks:next()) - val
-	val=tonumber(new_toks:next())
-	if val == nil then return nil end
-	ydiff=tonumber(target_toks:next()) - val
-	if xdiff < 0 then xdiff=0 - xdiff end
-	if ydiff < 0 then ydiff=0 - ydiff end
+  target_toks=strutil.TOKENIZER(target, "x")
+  new_toks=strutil.TOKENIZER(new, "x")
+  val=tonumber(new_toks:next())
+  if val == nil then return nil end
+  xdiff=tonumber(target_toks:next()) - val
+  val=tonumber(new_toks:next())
+  if val == nil then return nil end
+  ydiff=tonumber(target_toks:next()) - val
+  if xdiff < 0 then xdiff=0 - xdiff end
+  if ydiff < 0 then ydiff=0 - ydiff end
 
 return (xdiff+ydiff)
 end
@@ -2160,14 +2265,14 @@ if string.find(res, 'x') == nil then return false end
 
 if mod.best_resolution==""
 then
-	better=true
+  better=true
 else
-	new_diff=self:calc_diff(settings.resolution, res) 
-	best_diff=self:calc_diff(settings.resolution, mod.best_resolution)
-	if new_diff == nil then better=false
-	elseif best_diff == nil then better=true
-	elseif new_diff < best_diff then better=true
-	end
+  new_diff=self:calc_diff(settings.resolution, res) 
+  best_diff=self:calc_diff(settings.resolution, mod.best_resolution)
+  if new_diff == nil then better=false
+  elseif best_diff == nil then better=true
+  elseif new_diff < best_diff then better=true
+  end
 end
 
 if better==true then mod.best_resolution=res end
@@ -2180,53 +2285,133 @@ settings.resolution=mod:get()
 
 return mod
 end
--- pigeonholed is a server that stores lists and values for other apps. We use it to sync our blocklist and favorites
-
-function PigeonholedSendBlocklist(S)
-local i, url, str;
-
-	S:writeln("array wallpaper_mgr blocklist\n");
-	str=S:readln()
-	for i,url in ipairs(blocklist.items)
-	do
-	S:writeln("write wallpaper_mgr blocklist " .. url ..  "\n");
-	str=S:readln()
-	end
-end
+sync={
 
 
-function PigeonholedReadBlocklist(S)
-local item, toks, str;
+send_list=function(self, url, list_type, list)
+local str, S
 
-	S:writeln("read wallpaper_mgr blocklist\n");
-	str=S:readln()
-	toks=strutil.TOKENIZER(str, "\\S", "Q")
-	if toks:next() == "+OK"
-	then
-		item=toks:next()
-		while item ~= nil
-		do
-		if blocklist:add(item) then print("blocklist add: "..item) end
-		item=toks:next()
-		end
-	end
-
-end
-
-
-
-function PigeonholedSync(ph_server)
-local S
-
-S=stream.STREAM(ph_server)
+str=url.."/wallpaper_mgr-"..sys.hostname().."."..list_type
+S=stream.STREAM(str, "w")
 if S ~= nil
 then
-	PigeonholedSendBlocklist(S)
-	PigeonholedReadBlocklist(S)
-	S:close()
+  for key,value in pairs(list)
+  do
+    str="'"..key.."' '"..value.."'\n"
+    S:writeln(str)
+  end
+S:close()
+end
+
+end,
+
+
+
+import_list=function(self, S)
+local str, toks, url, list_type, catagory
+
+str=S:readln()
+while str ~= nil
+do
+	str=strutil.trim(str)
+	toks=strutil.TOKENIZER(str, "\\S", "Q")
+	url=toks:next()
+	list_type=toks:next()
+	
+	if string.sub(list_type, 1, 6) == "block:" then blocklist:add(url) 
+	elseif string.sub(list_type, 1, 5) == "fave:" 
+	then 
+	catagory=string.sub(list_type, 6)
+	favelist:add(url, catagory)
+  SaveWallpaper(url, settings.working_dir.."/faves/".. catagory, settings.working_dir.."/faves/") 
+  end
+
+	
+	str=S:readln()
+end
+
+end,
+
+
+recv_list=function(self, url)
+local S, str
+local glob={}
+
+glob=rglob(url .."wallpaper_mgr-*")
+for i, item in ipairs(glob)
+do
+str=url..filesys.basename(item)
+
+S=stream.STREAM(str, "r")
+if S ~= nil
+then
+self:import_list(S)
+S:close()
 end
 
 end
+
+end,
+
+
+run=function(self, url)
+
+
+self:send_list(url, "block", blocklist.items)
+self:send_list(url, "fave", favelist.items)
+self:recv_list(url)
+
+blocklist:save()
+favelist:save()
+end
+
+
+}
+
+function SaveWallpaper(url, dest, root_dir)
+local obj
+
+if strutil.strlen(dest)==0 
+then
+print("ERROR: no destination directory given")
+else
+  if url=="current" then url=GetCurrWallpaperDetails().url end
+  obj=InitLocalFiles(root_dir)
+  obj:add_image(url, "local:"..dest) 
+  return true
+end
+
+return false
+end
+
+
+function AddToFavesList(url, category)
+local S, curr
+
+if url == "current"
+then
+ curr=GetCurrWallpaperDetails()
+ url=curr.url
+end
+
+if strutil.strlen(url) > 0 then favelist:append(url, category) end
+
+end
+
+
+
+function FaveWallpaper(url, dest)
+if strutil.strlen(dest)==0 
+then
+print("ERROR: no favorites category given")
+else
+if SaveWallpaper(url, settings.working_dir.."/faves/"..dest, settings.working_dir.."/faves/") == true then AddToFavesList(url, dest) end
+
+end
+
+end
+
+
 function PrintHelp()
 local str, i, item
 
@@ -2249,6 +2434,7 @@ print("  -save-curr  <dest directory>                     save current image to 
 print("  -fave-curr  <name>                               save current image to a favorites collection named '<name>'.")
 print("  -save <url> <dest directory>                     save image at <url> to a destination directory.")
 print("  -fave <url> <name>                               save image at <url> to a favorites collection named '<name>'.")
+print("  -sync <url>                                      sync blocklist and favorites to a remote directory. Currently only supports ssh connections. Remote directory must pre-exist\n"); 
 print("  -info                                            info on current image.")
 print("  -title                                           title of current image (or URL if no title).")
 print("  -setroot <program name>                          use specified program to set background.")
@@ -2289,6 +2475,12 @@ print("   https:<username>:<password>@<host>:<port>")
 print("   socks:<username>:<password>@<host>:<port>")
 print("   sshtunnel:<ssh host>")
 print("<ssh host> is usually matching and entry in the ~/.ssh/config file")
+print("")
+print("The -sync command causes wallpaper_mgr to write files to a remote directory, and readback any files in that directory, and add favorites and blocklist entries from those files. The remote directory must pre-exist, it will not be created. For example:")
+print("")
+print("   wallpaper_mgr.lua -sync ssh:myserver/sync/")
+print("")
+print("Currently only ssh is supported, and the ssh-server must be set up in ~/.ssh/config with public-key authentication.")
 
 end
 
@@ -2308,7 +2500,7 @@ item=mod:get(source)
 if item ~= nil and strutil.strlen(item.url) > 0 
 then
 if blocklist:check(item.url) == false then result=GetWallpaper(item.url, source, item.title, item.description, item.author) 
-else print("BLOCKED: " .. item.url .. ". Never use this image.")
+else TermOut:puts("~e~rBLOCKED~0: " .. item.url .. ". Never use this image.")
 end
 
 end
@@ -2344,27 +2536,11 @@ end
 end
 
 
-function SaveWallpaper(url, dest, root_dir)
-local obj
+function SyncData(target)
+local url
 
-if strutil.strlen(dest)==0 
-then
-print("ERROR: no destination directory given")
-else
-	if url=="current" then url=GetCurrWallpaperDetails().url end
-	obj=InitLocalFiles(root_dir)
-	obj:add_image(url, "local:"..dest) 
-end
-end
-
-function FaveWallpaper(url, dest)
-if strutil.strlen(dest)==0 
-then
-print("ERROR: no favorites category given")
-else
-SaveWallpaper(url, settings.working_dir.."/faves/"..dest, settings.working_dir.."/faves/")
-end
-
+url=filesys.pathaddslash(target)
+sync:run(url)
 end
 
 
@@ -2405,37 +2581,37 @@ for i,str in ipairs(arg)
 do
 if strutil.strlen(str) > 0
 then
-	if str=="-sources" then source_list=sources:parse(arg[i+1])  ; arg[i+1]=""
-	elseif str=="+sources" then list=table_join(source_list, sources:parse(arg[i+1]))  ; arg[i+1]=""
-	elseif str=="-info" then act="info" 
-	elseif str=="-title" then act="title" 
-	elseif str=="-list" then act="list" 
-	elseif str=="-list-sources" then act="list" 
-	elseif str=="-add" then act="add" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-del" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-rm" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-remove" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-disable" then act="disable" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-enable" then act="enable" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-block" then act="block" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-block-curr" then act="block-curr"
-	elseif str=="-save-curr" then act="save-curr"; target=arg[i+1]; arg[i+1]=""
-	elseif str=="-fave-curr" then act="fave-curr"; target=arg[i+1]; arg[i+1]=""
-	elseif str=="-save" then act="save"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
-	elseif str=="-fave" then act="fave"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
-	elseif str=="-setroot" then settings.setroot=arg[i+1]; arg[i+1]=""
-	elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
-	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
-	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
-	elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
-	elseif str=="-proxy" then settings.proxy=arg[i+1]; arg[i+1]=""
-	elseif str=="-filetypes" then settings.filetypes=ParseFileTypes(arg[i+1]); arg[i+1]=""
-	elseif str=="-?" then act="help" 
-	elseif str=="-help" then act="help"
-	elseif str=="--help" then act="help"
-	elseif str=="--version" or str=="-version" then act="version"
-	else act="error"; print("unknown option '"..str.."'")
-	end
+  if str=="-sources" then source_list=sources:parse(arg[i+1])  ; arg[i+1]=""
+  elseif str=="+sources" then list=table_join(source_list, sources:parse(arg[i+1]))  ; arg[i+1]=""
+  elseif str=="-info" then act="info" 
+  elseif str=="-title" then act="title" 
+  elseif str=="-list" then act="list" 
+  elseif str=="-list-sources" then act="list" 
+  elseif str=="-add" then act="add" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-del" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-rm" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-remove" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-disable" then act="disable" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-enable" then act="enable" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-block" then act="block" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-block-curr" then act="block-curr"
+  elseif str=="-save-curr" then act="save-curr"; target=arg[i+1]; arg[i+1]=""
+  elseif str=="-fave-curr" then act="fave-curr"; target=arg[i+1]; arg[i+1]=""
+  elseif str=="-save" then act="save"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
+  elseif str=="-fave" then act="fave"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
+  elseif str=="-setroot" then settings.setroot=arg[i+1]; arg[i+1]=""
+  elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
+  elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
+  elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
+  elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
+  elseif str=="-proxy" then settings.proxy=arg[i+1]; arg[i+1]=""
+  elseif str=="-filetypes" then settings.filetypes=ParseFileTypes(arg[i+1]); arg[i+1]=""
+  elseif str=="-?" then act="help" 
+  elseif str=="-help" then act="help"
+  elseif str=="--help" then act="help"
+  elseif str=="--version" or str=="-version" then act="version"
+  else act="error"; print("unknown option '"..str.."'")
+  end
 end
 end
 
@@ -2445,14 +2621,39 @@ return act,target,src_url,source_list
 end
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+-- 'main' starts here
+
+--turn on some security features, process should not be able to su or sudo
+--enable 'memory deny write exec' and set seccomp level to 'untrusted'.
+--these features have to be supported/compiled into libUseful, the kernel 
+--and the underlying hardware to work.
+process.configure("nosu mdwe security=untrusted")
+
 -- seed random number generator so it doesn't produce the same
 -- pattern of values!
 math.randomseed(os.time()+process.getpid())
 
+--let's have a global 'terminal output' object
+TermOut=terminal.TERM(NULL)
+
+--process.lu_set("libUseful:Debug", "y")
 
 InitSettings()
 sources=InitSources()
-blocklist=InitBlocklist()
+blocklist=URLListInit("blocked", "block")
+favelist=URLListInit("faves", "fave")
 
 process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
 
@@ -2472,13 +2673,13 @@ elseif act=="disable" then sources:disable(target)
 elseif act=="enable" then sources:enable(target)
 elseif act=="add" then sources:add(target)
 elseif act=="remove" then sources:remove(target)
-elseif act=="block-curr" then blocklist:add(GetCurrWallpaperDetails().url) 
 elseif act=="save-curr" then SaveWallpaper("current", target)
-elseif act=="fave-curr" then FaveWallpaper("current", target)
-elseif act=="block" then blocklist:add(target) 
 elseif act=="save" then SaveWallpaper(src_url, target)
+elseif act=="block-curr" then blocklist:append(GetCurrWallpaperDetails().url) 
+elseif act=="block" then blocklist:append(target) 
+elseif act=="fave-curr" then FaveWallpaper("current", target)
 elseif act=="fave" then FaveWallpaper(src_url, target)
-elseif act=="sync" then PigeonholedSync(target)
+elseif act=="sync" then SyncData(target)
 elseif act=="random"
 then
   resolution=InitResolution()

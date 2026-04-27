@@ -43,20 +43,19 @@ local title=""
 category=source_parse(source, "nebula")
 str="https://www.eso.org/public/images/?search=" .. category 
 
-print("GET: "..str)
-S=stream.STREAM(str, "r")
+S=URLGet(str)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	  if tag.type=="script" then self:consider_script(XML:next().data)end
-	  tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type=="script" then self:consider_script(XML:next().data)end
+    tag=XML:next()
+  end
 end
 
 item=SelectRandomItem(self.images)

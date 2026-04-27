@@ -62,7 +62,7 @@ local path
 path=filesys.find(filename, process.getenv("PATH"))
 if strutil.strlen(path) > 0
 then
-print(filename .. " command found at " .. path ..". " .. title)
+TermOut:puts("~m"..filename .. "~0 command found at ~e" .. path .."~0. " .. title.."\n")
 os.execute(path .. invocation ..  "\"" .. image_path .. "\"") 
 found=filename
 end
@@ -77,14 +77,14 @@ local i, item, toks, str, path, cmd
 
 for i,item in ipairs(programs)
 do
-	toks=strutil.TOKENIZER(item, "\\S")
-	str=toks:next()
-	path=filesys.find(str, process.getenv("PATH"))
-	if strutil.strlen(path) > 0
-	then 
+  toks=strutil.TOKENIZER(item, "\\S")
+  str=toks:next()
+  path=filesys.find(str, process.getenv("PATH"))
+  if strutil.strlen(path) > 0
+  then 
   cmd=path.." "..toks:remaining() .. " " 
-	break
-	end
+  break
+  end
 end
 
 return cmd
@@ -102,7 +102,7 @@ end
 if strutil.strlen(cmd) > 0 
 then
 cmd=string.gsub(cmd, "%(root_geometry%)", settings.resolution)
-print("setting X11 root window with: "..cmd)
+TermOut:puts("setting ~mX11~0 root window with: ~e"..cmd.."~0\n")
 os.execute(cmd .. image_path)
 end
 
@@ -123,9 +123,9 @@ cmd=X11SetRoot(image_path)
 path=filesys.find("gsettings", process.getenv("PATH"))
 if strutil.strlen(path) > 0 
 then 
-print("gsettings command found at ".. path ..". Setting background for gnome desktop")
+TermOut:puts("~mgsettings~0 command found at ~e".. path .."~0. Setting background for gnome desktop.\n")
 os.execute("gsettings set org.gnome.desktop.background picture-uri file:///" .. image_path) 
-print("gsettings command found at ".. path ..". Setting background for cinnamon desktop")
+TermOut:puts("~mgsettings~0 command found at ~e".. path .."~0. Setting background for cinnamon desktop\n")
 os.execute("gsettings set org.cinnamon.desktop.background picture-uri file:///" .. image_path) 
 cmd="gsettings"
 end

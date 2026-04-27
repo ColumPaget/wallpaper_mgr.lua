@@ -5,9 +5,64 @@ require("process")
 require("filesys")
 require("hash")
 require("net")
+require("sys")
 require("dataparser")
+require("terminal")
 
-prog_version="3.2"
+prog_version="3.3"
+
+
+function URLGet(url)
+local S
+
+TermOut:puts("~eGET~0: ~c"..url .. "~0")
+TermOut:flush()
+S=stream.STREAM(url, "r")
+
+if S ~= nil
+then
+  if string.sub(url, 1, 5)=="http:" or string.sub(url, 1, 6)=="https:" 
+  then
+    if S:getvalue("HTTP:ResponseCode") ~= "200"
+    then
+      S:close()
+      S=nil
+    end
+  end
+end
+
+
+if S ~= nil then TermOut:puts(" ... ~gokay~0\n")
+else TermOut:puts(" ... ~rfailed~0\n")
+end
+
+return S
+end
+
+
+-- 'remote glob' function, currently only works for ssh
+function rglob(url)
+local S, str
+local glob={}
+
+
+S=stream.STREAM(url, "l")
+if S ~= nil
+then
+  str=S:readln()
+  while str ~= nil
+  do
+  str=strutil.trim(str)
+  table.insert(glob, str)
+  str=S:readln()
+  end
+
+  S:close()
+end
+
+return glob
+end
+
 
 
 function source_parse(input, default_category)
@@ -36,7 +91,7 @@ end
 
 
 function SelectRandomItem(choices)
-local val, i
+local val, i, item, url
 
 if choices == nil then return nil end
 if #choices < 1 then return nil end
@@ -44,9 +99,14 @@ if #choices < 1 then return nil end
 for i=1,10,1
 do
 val=math.random(#choices)
-if blocklist:check(choices[val]) == false then return choices[val] end
+item=choices[val]
+if type(item) == "table" then url=item.url
+else url=item
+end
+if blocklist:check(url) == false then return choices[val] end
 end
 
+print("NO SELECT")
 return nil
 end
 
@@ -80,68 +140,6 @@ return item, best_res
 end
 
 
-
-
-function GetCurrWallpaperDetails()
-local dir, S, str, toks
-local details={}
-
-dir=process.getenv("HOME").."/.local/share/wallpaper/"
-S=stream.STREAM(dir.."wallpapers.curr", "r")
-if S ~= nil
-then
-str=S:readln()
-while str ~= nil
-do
-	str=strutil.trim(str)
-	if strutil.strlen(str) > 0
-	then
-	toks=strutil.TOKENIZER(str, ":")
-	details[toks:next()]=strutil.trim(toks:remaining())
-	end
-	str=S:readln()
-end
-S:close()
-end
-
-return details
-end
-
-
-function ShowCurrWallpaperDetails()
-local key, val
-
-for key,val in pairs(GetCurrWallpaperDetails())
-do
-print(key..": "..val)
-end
-
-end
-
-
-function ShowCurrWallpaperTitle()
-local dir,S,str
-local title=""
-
-dir=process.getenv("HOME").."/.local/share/wallpaper/"
-S=stream.STREAM(dir.."wallpapers.curr", "r")
-if S ~= nil
-then
-  str=S:readln()
-	while str ~= nil
-	do
-	str=strutil.trim(str)
-	if string.sub(str, 1, 5) == "url: " then url=string.sub(str, 6) end
-	if string.sub(str, 1, 7) == "title: " then title=string.sub(str, 8) end
-  str=S:readln()
-	end
-	S:close()
-end
-
-if strutil.strlen(title) > 0 then print(title) 
-else print(filesys.basename(url))
-end
-end
 
 
 

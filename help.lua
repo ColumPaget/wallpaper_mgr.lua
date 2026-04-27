@@ -20,6 +20,7 @@ print("  -save-curr  <dest directory>                     save current image to 
 print("  -fave-curr  <name>                               save current image to a favorites collection named '<name>'.")
 print("  -save <url> <dest directory>                     save image at <url> to a destination directory.")
 print("  -fave <url> <name>                               save image at <url> to a favorites collection named '<name>'.")
+print("  -sync <url>                                      sync blocklist and favorites to a remote directory. Currently only supports ssh connections. Remote directory must pre-exist\n"); 
 print("  -info                                            info on current image.")
 print("  -title                                           title of current image (or URL if no title).")
 print("  -setroot <program name>                          use specified program to set background.")
@@ -60,6 +61,12 @@ print("   https:<username>:<password>@<host>:<port>")
 print("   socks:<username>:<password>@<host>:<port>")
 print("   sshtunnel:<ssh host>")
 print("<ssh host> is usually matching and entry in the ~/.ssh/config file")
+print("")
+print("The -sync command causes wallpaper_mgr to write files to a remote directory, and readback any files in that directory, and add favorites and blocklist entries from those files. The remote directory must pre-exist, it will not be created. For example:")
+print("")
+print("   wallpaper_mgr.lua -sync ssh:myserver/sync/")
+print("")
+print("Currently only ssh is supported, and the ssh-server must be set up in ~/.ssh/config with public-key authentication.")
 
 end
 

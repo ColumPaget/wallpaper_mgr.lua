@@ -19,28 +19,26 @@ if strutil.strlen(source) ==0 then return nil end
 collection=source_parse(source, "wallpaperscollection")
 root="https://archive.org/download/" .. collection
 
-
-print("GET: "..root)
-S=stream.STREAM(root, "r")
+S=URLGet(root)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type=="a"
-	then 
-	  str=HtmlTagExtractHRef(tag.data, "")
-		if strutil.strlen(str) > 0  and IsImageURL(str) == true and string.find(str, "thumb") == nil
-		then
-			table.insert(images, str)
-		end
-	end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type=="a"
+  then 
+    str=HtmlTagExtractHRef(tag.data, "")
+    if strutil.strlen(str) > 0  and IsImageURL(str) == true and string.find(str, "thumb") == nil
+    then
+      table.insert(images, str)
+    end
+  end
+  tag=XML:next()
+  end
 end
 
 

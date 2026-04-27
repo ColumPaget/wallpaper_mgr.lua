@@ -12,13 +12,13 @@ toks=strutil.TOKENIZER(str, "\\S", "Q")
 tok=toks:next()
 while tok ~= nil
 do
-	if tok == identifier then is_target=true end
+  if tok == identifier then is_target=true end
 
-	len=strutil.strlen(attrib)
-	if string.sub(tok, 1, len) == attrib
-	then 
-	 value=strutil.stripQuotes(string.sub(tok, len+1))
-	end
+  len=strutil.strlen(attrib)
+  if string.sub(tok, 1, len) == attrib
+  then 
+   value=strutil.stripQuotes(string.sub(tok, len+1))
+  end
 tok=toks:next()
 end
 

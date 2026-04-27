@@ -15,41 +15,40 @@ local images={}
 category=source_parse(source, "galaxy")
 str="https://chandra.harvard.edu/resources/desktops_" .. category .. ".html"
 
-print("GET: "..str)
-S=stream.STREAM(str, "r")
+S=URLGet(str)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type=="span" 
-	then
-	 tag=XML:next()
-	 title=tag.data
-	elseif tag.type=="a"
-	then 
-	  str=HtmlTagExtractHRef(tag.data, "")
-		if strutil.strlen(str) > 0 
-		then
-			tag=XML:next()
-			if tag==nil then break end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type=="span" 
+  then
+   tag=XML:next()
+   title=tag.data
+  elseif tag.type=="a"
+  then 
+    str=HtmlTagExtractHRef(tag.data, "")
+    if strutil.strlen(str) > 0 
+    then
+      tag=XML:next()
+      if tag==nil then break end
 
-			if string.find(tag.data, ' ') == nil and string.find(tag.data, 'x') ~= nil
-			then
-			item={}
+      if string.find(tag.data, ' ') == nil and string.find(tag.data, 'x') ~= nil
+      then
+      item={}
       item.url="https://chandra.harvard.edu/" .. str
-			item.title=title
-			item.resolution=tag.data
-			table.insert(images, item)
-			end
-		end
-	end
-	tag=XML:next()
-	end
+      item.title=title
+      item.resolution=tag.data
+      table.insert(images, item)
+      end
+    end
+  end
+  tag=XML:next()
+  end
 end
 
 

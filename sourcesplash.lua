@@ -13,17 +13,16 @@ local images={}
 category=source_parse(source, "galaxy")
 url="https://www.sourcesplash.com/api/search?q=" .. category
 
-print("GET: "..url)
-S=stream.STREAM(url, "r")
+S=URLGet(url)
 if S ~= nil
 then
-	str=S:readdoc()
-	P=dataparser.PARSER("json", str)
-	S:close()
+  str=S:readdoc()
+  P=dataparser.PARSER("json", str)
+  S:close()
 
-	items=P:open("photos")
-	item=items:next()
-	while item ~= nil
+  items=P:open("photos")
+  item=items:next()
+  while item ~= nil
   do
   image={}
   image.title=item:value("description")
@@ -31,8 +30,8 @@ then
   image.resolution=item:value("width") .. "x" ..item:value("height")
   image.author=item:value("author")
 
-	table.insert(images, image)
-	item=items:next()
+  table.insert(images, image)
+  item=items:next()
   end
 end
 

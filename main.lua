@@ -14,7 +14,7 @@ item=mod:get(source)
 if item ~= nil and strutil.strlen(item.url) > 0 
 then
 if blocklist:check(item.url) == false then result=GetWallpaper(item.url, source, item.title, item.description, item.author) 
-else print("BLOCKED: " .. item.url .. ". Never use this image.")
+else TermOut:puts("~e~rBLOCKED~0: " .. item.url .. ". Never use this image.")
 end
 
 end
@@ -50,27 +50,11 @@ end
 end
 
 
-function SaveWallpaper(url, dest, root_dir)
-local obj
+function SyncData(target)
+local url
 
-if strutil.strlen(dest)==0 
-then
-print("ERROR: no destination directory given")
-else
-	if url=="current" then url=GetCurrWallpaperDetails().url end
-	obj=InitLocalFiles(root_dir)
-	obj:add_image(url, "local:"..dest) 
-end
-end
-
-function FaveWallpaper(url, dest)
-if strutil.strlen(dest)==0 
-then
-print("ERROR: no favorites category given")
-else
-SaveWallpaper(url, settings.working_dir.."/faves/"..dest, settings.working_dir.."/faves/")
-end
-
+url=filesys.pathaddslash(target)
+sync:run(url)
 end
 
 
@@ -111,37 +95,37 @@ for i,str in ipairs(arg)
 do
 if strutil.strlen(str) > 0
 then
-	if str=="-sources" then source_list=sources:parse(arg[i+1])  ; arg[i+1]=""
-	elseif str=="+sources" then list=table_join(source_list, sources:parse(arg[i+1]))  ; arg[i+1]=""
-	elseif str=="-info" then act="info" 
-	elseif str=="-title" then act="title" 
-	elseif str=="-list" then act="list" 
-	elseif str=="-list-sources" then act="list" 
-	elseif str=="-add" then act="add" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-del" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-rm" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-remove" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-disable" then act="disable" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-enable" then act="enable" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-block" then act="block" ; target=arg[i+1] ; arg[i+1]=""
-	elseif str=="-block-curr" then act="block-curr"
-	elseif str=="-save-curr" then act="save-curr"; target=arg[i+1]; arg[i+1]=""
-	elseif str=="-fave-curr" then act="fave-curr"; target=arg[i+1]; arg[i+1]=""
-	elseif str=="-save" then act="save"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
-	elseif str=="-fave" then act="fave"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
-	elseif str=="-setroot" then settings.setroot=arg[i+1]; arg[i+1]=""
-	elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
-	elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
-	elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
-	elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
-	elseif str=="-proxy" then settings.proxy=arg[i+1]; arg[i+1]=""
-	elseif str=="-filetypes" then settings.filetypes=ParseFileTypes(arg[i+1]); arg[i+1]=""
-	elseif str=="-?" then act="help" 
-	elseif str=="-help" then act="help"
-	elseif str=="--help" then act="help"
-	elseif str=="--version" or str=="-version" then act="version"
-	else act="error"; print("unknown option '"..str.."'")
-	end
+  if str=="-sources" then source_list=sources:parse(arg[i+1])  ; arg[i+1]=""
+  elseif str=="+sources" then list=table_join(source_list, sources:parse(arg[i+1]))  ; arg[i+1]=""
+  elseif str=="-info" then act="info" 
+  elseif str=="-title" then act="title" 
+  elseif str=="-list" then act="list" 
+  elseif str=="-list-sources" then act="list" 
+  elseif str=="-add" then act="add" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-del" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-rm" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-remove" then act="remove" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-disable" then act="disable" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-enable" then act="enable" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-block" then act="block" ; target=arg[i+1] ; arg[i+1]=""
+  elseif str=="-block-curr" then act="block-curr"
+  elseif str=="-save-curr" then act="save-curr"; target=arg[i+1]; arg[i+1]=""
+  elseif str=="-fave-curr" then act="fave-curr"; target=arg[i+1]; arg[i+1]=""
+  elseif str=="-save" then act="save"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
+  elseif str=="-fave" then act="fave"; src_url=arg[i+1]; target=arg[i+2]; arg[i+1]=""; arg[i+2]=""
+  elseif str=="-setroot" then settings.setroot=arg[i+1]; arg[i+1]=""
+  elseif str=="-resolution" then settings.resolution=arg[i+1]; arg[i+1]=""
+  elseif str=="-res" then settings.resolution=arg[i+1]; arg[i+1]=""
+  elseif str=="-exe_path" then process.setenv("PATH", arg[i+1]); arg[i+1]=""
+  elseif str=="-sync" then act="sync"; target=arg[i+1]; arg[i+1]=""
+  elseif str=="-proxy" then settings.proxy=arg[i+1]; arg[i+1]=""
+  elseif str=="-filetypes" then settings.filetypes=ParseFileTypes(arg[i+1]); arg[i+1]=""
+  elseif str=="-?" then act="help" 
+  elseif str=="-help" then act="help"
+  elseif str=="--help" then act="help"
+  elseif str=="--version" or str=="-version" then act="version"
+  else act="error"; print("unknown option '"..str.."'")
+  end
 end
 end
 
@@ -151,14 +135,39 @@ return act,target,src_url,source_list
 end
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+-- 'main' starts here
+
+--turn on some security features, process should not be able to su or sudo
+--enable 'memory deny write exec' and set seccomp level to 'untrusted'.
+--these features have to be supported/compiled into libUseful, the kernel 
+--and the underlying hardware to work.
+process.configure("nosu mdwe security=untrusted")
+
 -- seed random number generator so it doesn't produce the same
 -- pattern of values!
 math.randomseed(os.time()+process.getpid())
 
+--let's have a global 'terminal output' object
+TermOut=terminal.TERM(NULL)
+
+--process.lu_set("libUseful:Debug", "y")
 
 InitSettings()
 sources=InitSources()
-blocklist=InitBlocklist()
+blocklist=URLListInit("blocked", "block")
+favelist=URLListInit("faves", "fave")
 
 process.lu_set("HTTP:UserAgent", "wallpaper.lua (colum.paget@gmail.com)")
 
@@ -178,13 +187,13 @@ elseif act=="disable" then sources:disable(target)
 elseif act=="enable" then sources:enable(target)
 elseif act=="add" then sources:add(target)
 elseif act=="remove" then sources:remove(target)
-elseif act=="block-curr" then blocklist:add(GetCurrWallpaperDetails().url) 
 elseif act=="save-curr" then SaveWallpaper("current", target)
-elseif act=="fave-curr" then FaveWallpaper("current", target)
-elseif act=="block" then blocklist:add(target) 
 elseif act=="save" then SaveWallpaper(src_url, target)
+elseif act=="block-curr" then blocklist:append(GetCurrWallpaperDetails().url) 
+elseif act=="block" then blocklist:append(target) 
+elseif act=="fave-curr" then FaveWallpaper("current", target)
 elseif act=="fave" then FaveWallpaper(src_url, target)
-elseif act=="sync" then PigeonholedSync(target)
+elseif act=="sync" then SyncData(target)
 elseif act=="random"
 then
   resolution=InitResolution()

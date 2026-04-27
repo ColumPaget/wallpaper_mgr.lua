@@ -13,9 +13,9 @@ if strutil.strlen(str) < 1 then return false end
 path="/" .. category .. "/" 
 if string.sub(str, 1, strutil.strlen(path) ) == path
 then 
-	path=path.."page/"
-	if string.sub(str, 1, strutil.strlen(path) ) == path then return false end
-	return true
+  path=path.."page/"
+  if string.sub(str, 1, strutil.strlen(path) ) == path then return false end
+  return true
 end
 
 return false
@@ -31,23 +31,23 @@ if strutil.strlen(page) == 0 then return nil end
 S=stream.STREAM("https://suwalls.com" .. page, "")
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "title"
-	then
-	title=XML:next().value
-	elseif tag.type == "a"
-	then
-		str=HtmlTagExtractHRef(tag.data, 'class="dlink"') 
-		if strutil.strlen(str) > 0 then url=str end
-	end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "title"
+  then
+  title=XML:next().value
+  elseif tag.type == "a"
+  then
+    str=HtmlTagExtractHRef(tag.data, 'class="dlink"') 
+    if strutil.strlen(str) > 0 then url=str end
+  end
+  tag=XML:next()
+  end
 end
 
 return url, title
@@ -59,28 +59,27 @@ local S, html, str, XML, category, item
 
 category=source_parse(source, "nature")
 str="https://suwalls.com/" .. category
-print("GET: "..str)
 
-S=stream.STREAM(str, "")
+S=URLGet(str)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	if tag.type == "a"
-	then
-		str=HtmlTagExtractHRef(tag.data,"")
-		if str ~= nil
-		then
-		if self:is_image_page(str, category) then table.insert(self.pages, str) end
-		end
-	end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+  if tag.type == "a"
+  then
+    str=HtmlTagExtractHRef(tag.data,"")
+    if str ~= nil
+    then
+    if self:is_image_page(str, category) then table.insert(self.pages, str) end
+    end
+  end
+  tag=XML:next()
+  end
 end
 
 str=SelectRandomItem(self.pages)

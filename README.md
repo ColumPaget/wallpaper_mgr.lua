@@ -47,8 +47,9 @@ USAGE
 wallpaper_mgr.lua [options]
 options:
   -sources <comma separated list of sources>       list of sources to get images from, overriding the default list.
-  +sources <comma separated list of sources>       append to list of sources.
+  +sources <comma separated list of sources>       add sources to list (either add to default list, or a list supplied with -sources)
   -list                                            list default sources.
+  -list-sources                                    list default sources.
   -add <source>                                    add a source to the list of default sources.
   -del <source>                                    remove an item from the list of default sources.
   -rm <source>                                     remove an item from the list of default sources.
@@ -61,18 +62,20 @@ options:
   -fave-curr  <name>                               save current image to a favorites collection named '<name>'.
   -save <url> <dest directory>                     save image at <url> to a destination directory.
   -fave <url> <name>                               save image at <url> to a favorites collection named '<name>'.
+  -sync <url>                                      sync blocklist and favorites to a remote directory. Currently only supports ssh connections. Remote directory must pre-exist
+
   -info                                            info on current image.
   -title                                           title of current image (or URL if no title).
   -setroot <program name>                          use specified program to set background.
-  -exe_path <path>                                 colon-seperated search path for 'setroot' executables. e.g. '-exe_path /usr/X11R7/bin:/usr/bin'.
   -resolution <resolution>                         get images matching <resolution>
+  -exe_path <path>                                 colon-separated search path for 'setroot' programs. e.g. -exec_path /usr/X11R7/bin:/usr/bin
   -res <resolution>                                get images matching <resolution>
+  -proxy <url>                                     use given proxy server
   -filetypes <list>                                comma-seperated list of file extensions to accept from image sources, e.g. '.jpg,.jpeg' or 'jpg,jpeg'. Be wary that most sites return .jpg, so if you leave that out of the list, you will get few (or no) images. Default is '.jpg,.jpeg,.png'
   -?                                               this help
   -help                                            this help
   --help                                           this help
 ```
-
 
 DESKTOP ENVIRONMENTS, WINDOW MANAGERS, AND 'setroot' PROGRAMS
 =============================================================
@@ -246,3 +249,17 @@ ARCHIVE.ORG SOURCES
 ===================
 
 archive.org sources are accessed via their 'download' page, which should provide a list of sub-items. There must be image items at the top level of an archive.org package, and they must not have 'thumb' in their name (as wallpaper_mgr.lua tries to avoid downloading thumbnails).
+
+
+BLOCKLIST and FAVORITES SYNC
+============================
+
+The -sync command causes wallpaper_mgr to write files to a remote directory, and readback any files in that directory, and add favorites and blocklist entries from those files. The remote directory must pre-exist, it will not be created. For example:
+
+```
+   wallpaper_mgr.lua -sync ssh:myserver/sync/
+```
+
+Currently only ssh is supported, and the ssh-server must be set up in ~/.ssh/config with public-key authentication. 
+
+

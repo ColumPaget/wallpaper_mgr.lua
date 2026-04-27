@@ -62,30 +62,33 @@ end
 
 
 mod.select=function(self, source)
-local obj
+local obj, source_type, toks
 
-if string.sub(source, 1, 5)=="bing:" then obj=InitBing()
-elseif string.sub(source, 1, 5)=="nasa:" then obj=InitNASA()
-elseif string.sub(source, 1, 8)=="chandra:" then obj=InitChandra()
-elseif string.sub(source, 1, 4)=="eso:" then obj=InitESO()
-elseif string.sub(source, 1, 4)=="esa:" then obj=InitESA("https://esa.int")
-elseif string.sub(source, 1, 10)=="esahubble:" then obj=InitESA("https://esahubble.org")
-elseif string.sub(source, 1, 8)=="esawebb:" then obj=InitESA("https://esawebb.org")
-elseif string.sub(source, 1, 13)=="wallpapers13:" then obj=InitWallpapers13()
-elseif string.sub(source, 1, 14)=="getwallpapers:" then obj=InitGetWallpapers()
-elseif string.sub(source, 1, 13)=="hipwallpaper:" then obj=InitHipWallpaper()
-elseif string.sub(source, 1, 14)=="hipwallpapers:" then obj=InitHipWallpaper()
-elseif string.sub(source, 1, 10)=="wikimedia:" then obj=InitWikimedia()
-elseif string.sub(source, 1, 10)=="wallhaven:" then obj=InitWallhaven()
-elseif string.sub(source, 1, 13)=="sourcesplash:" then obj=InitSourceSplash()
-elseif string.sub(source, 1, 16)=="wallpaperscraft:" then obj=InitWallpapersCraft()
-elseif string.sub(source, 1, 8)=="suwalls:" then obj=InitSUWalls()
-elseif string.sub(source, 1, 12)=="archive.org:" then obj=InitArchiveOrg()
-elseif string.sub(source, 1, 12)=="archive_org" then obj=InitArchiveOrg()
-elseif string.sub(source, 1, 6)=="local:" then obj=InitLocalFiles()
-elseif string.sub(source, 1, 6)=="faves:" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
-elseif string.sub(source, 1, 9)=="playlist:" then obj=InitPlaylist()
-elseif string.sub(source, 1, 4)=="ssh:" then obj=InitSSH()
+toks=strutil.TOKENIZER(source, ":")
+source_type=toks:next()
+
+if source_type == "bing" then obj=InitBing()
+elseif source_type == "nasa" then obj=InitNASA()
+elseif source_type == "chandra" then obj=InitChandra()
+elseif source_type == "eso" then obj=InitESO()
+elseif source_type == "esa" then obj=InitESA("https://esa.int")
+elseif source_type == "esahubble" then obj=InitESA("https://esahubble.org")
+elseif source_type == "esawebb" then obj=InitESA("https://esawebb.org")
+elseif source_type == "wallpapers13" then obj=InitWallpapers13()
+elseif source_type == "getwallpapers" then obj=InitGetWallpapers()
+elseif source_type == "hipwallpaper" then obj=InitHipWallpaper()
+elseif source_type == "hipwallpapers" then obj=InitHipWallpaper()
+elseif source_type == "wikimedia" then obj=InitWikimedia()
+elseif source_type == "wallhaven" then obj=InitWallhaven()
+elseif source_type == "sourcesplash" then obj=InitSourceSplash()
+elseif source_type == "wallpaperscraft" then obj=InitWallpapersCraft()
+elseif source_type == "suwalls" then obj=InitSUWalls()
+elseif source_type == "archive.org" then obj=InitArchiveOrg()
+elseif source_type == "archive_org" then obj=InitArchiveOrg()
+elseif source_type == "local" then obj=InitLocalFiles()
+elseif source_type == "faves" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
+elseif source_type == "playlist" then obj=InitPlaylist()
+elseif source_type == "ssh" then obj=InitSSH()
 end
 
 return obj
@@ -98,8 +101,8 @@ local locals_list={}
 
 for i, str in ipairs(source_list)
 do
-	stype=string.sub(str, 1, 6)
-	if stype=="local:" or stype=="faves:" then table.insert(locals_list, str) end
+  stype=string.sub(str, 1, 6)
+  if stype=="local:" or stype=="faves:" then table.insert(locals_list, str) end
 end
 
 return locals_list
@@ -120,7 +123,7 @@ local sources
 sources=self:load(true)
 for i,item in ipairs(sources)
 do
-	if item==target then sources[i]="#"..item end
+  if item==target then sources[i]="#"..item end
 end
 self:save(sources)
 
@@ -134,7 +137,7 @@ local sources
 sources=self:load(true)
 for i,item in ipairs(sources)
 do
-	if item == "#"..target then sources[i]=target end
+  if item == "#"..target then sources[i]=target end
 end
 self:save(sources)
 
@@ -169,7 +172,7 @@ local sources
 sources=self:load(true)
 for i,item in ipairs(sources)
 do
-	if item==target then sources[i]="" end
+  if item==target then sources[i]="" end
 end
 self:save(sources)
 
@@ -180,8 +183,8 @@ end
 mod.sources=mod:load()
 if mod.sources == nil or #mod.sources == 0
 then
-	mod:save(settings.default_sources)
-	mod.sources=mod:load()
+  mod:save(settings.default_sources)
+  mod.sources=mod:load()
 end
 
 

@@ -90,24 +90,23 @@ page=math.random()
 page=page * max_page
 page=page + 1 -- pages start at 1, not zero
 
-	if strutil.strlen(category) > 0
-	then
-	-- https://esahubble.org/images/archive/category/galaxies/page/3/
-	url=self.base_url .. "/images/archive/category/".. category .. "/page/"..string.format("%d", math.floor(page)).."/"
-	else
-	url=self.base_url .. "/images/" .. "/page/"..string.format("%d", math.floor(page)).."/"
-	end
+  if strutil.strlen(category) > 0
+  then
+  -- https://esahubble.org/images/archive/category/galaxies/page/3/
+  url=self.base_url .. "/images/archive/category/".. category .. "/page/"..string.format("%d", math.floor(page)).."/"
+  else
+  url=self.base_url .. "/images/" .. "/page/"..string.format("%d", math.floor(page)).."/"
+  end
 
-print("GET: "..url)
-	S=stream.STREAM(url, "r")
-	if S == nil then return nil end
-	if S:getvalue("HTTP:ResponseCode") ~= "200"
-	then
-	S:close()
-	return nil
-	end
+  S=URLGet(url)
+  if S == nil then return nil end
+  if S:getvalue("HTTP:ResponseCode") ~= "200"
+  then
+  S:close()
+  return nil
+  end
 
-	return S
+  return S
 end
 
 
@@ -121,16 +120,16 @@ if S == nil then S=self:hubwebb_open_page(category, 1) end
 
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	  if tag.type == "script" then self:hubwebb_read_script(XML:next().data) end
-	  tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type == "script" then self:hubwebb_read_script(XML:next().data) end
+    tag=XML:next()
+  end
 end
 
 item=SelectRandomItem(self.images)
@@ -153,22 +152,22 @@ local img, tag, url
 url=HtmlTagExtractAttrib(img_data, "src")
 if IsImageURL(url) == true
 then
-	img={}
+  img={}
   img.url=url
 
   -- now we look through remaining tags for an image title
   -- if we hit '</tr>' then we're at the end of stuff relating 
   -- to this image
-	tag=XML:next()
-	while tag ~= nil and tag.type ~= "/tr"
-	do
-		if tag.type=="a"
-		then
-			tag=XML:next()
-			img.title=tag.data
-		end
-	tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil and tag.type ~= "/tr"
+  do
+    if tag.type=="a"
+    then
+      tag=XML:next()
+      img.title=tag.data
+    end
+  tag=XML:next()
+  end
 end
 
 return img
@@ -181,22 +180,22 @@ local tag, str, width, img
 tag=XML:next()
 while tag ~= nil
 do
-	if tag.type == "img"
-	then
-	--some esa earth observation images are very low resolution
+  if tag.type == "img"
+  then
+  --some esa earth observation images are very low resolution
   --and do not make good backgrounds. Fortunately they are tagged with a 'width' value of 60
   --which makes them distinguishable from higher-res images that have a width of 100
   --other esa image galleries don't have this width value, and so if width is nil we can also use the image
-  	width=HtmlTagExtractAttrib(tag.data, "width")
+    width=HtmlTagExtractAttrib(tag.data, "width")
     if width==nil or tonumber(width) > 60
     then
-    	img=self:esa_extract_image(tag.data, XML)
-    	if img ~= nil then table.insert(self.images, img) end
-  	end
+      img=self:esa_extract_image(tag.data, XML)
+      if img ~= nil then table.insert(self.images, img) end
+    end
   end
 tag=XML:next()
 end
-	
+  
 end
 
 
@@ -215,20 +214,19 @@ end
 
 url=self.base_url .. "/Applications/Observing_the_Earth/Image_archive"
 
-print("GET: "..url)
-S=stream.STREAM(url, "")
+S=URLGet(url)
 if S ~= nil
 then
-	html=S:readdoc()
-	XML=xml.XML(html)
-	S:close()
+  html=S:readdoc()
+  XML=xml.XML(html)
+  S:close()
 
-	tag=XML:next()
-	while tag ~= nil
-	do
-	  if tag.type == "div" and tag.data == "class=\"article__block\"" then self:esa_read_article(XML) end
-	  tag=XML:next()
-	end
+  tag=XML:next()
+  while tag ~= nil
+  do
+    if tag.type == "div" and tag.data == "class=\"article__block\"" then self:esa_read_article(XML) end
+    tag=XML:next()
+  end
 end
 
 item=SelectRandomItem(self.images)

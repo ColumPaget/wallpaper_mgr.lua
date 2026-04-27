@@ -1,3 +1,9 @@
+v3.3 (2026-04-27)
+ * fix bing
+ * fix 'local sources' (issue created when image items went from being a string to an object)
+ * colorize program activity/debug output
+ * add 'sync' feature
+
 v3.2 (2025-11-10)
  * support rox desktop
  * support pcmanfm desktop
@@ -27,7 +33,7 @@ v2.9 (2025-03-02)
 v2.8 (2024-10-08) 
  * added wallpaperscraft.com to sources
  * added hdqwalls.com to sources
- * print actual default souces list
+ * print actual default sources list
  * minor fixes for crash if can't get resolution
 
 v2.7 (2023-12-21)
