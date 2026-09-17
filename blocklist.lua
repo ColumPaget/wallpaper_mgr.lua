@@ -31,14 +31,14 @@ local S, str
 S=stream.STREAM(settings.working_dir.."/blocked.lst", "r")
 if S ~= nil
 then
-	str=S:readln()
-	while str ~= nil
-	do
-	str=strutil.trim(str)
-	table.insert(self.items, str)
-	str=S:readln()
-	end
-	S:close()
+  str=S:readln()
+  while str ~= nil
+  do
+  str=strutil.trim(str)
+  table.insert(self.items, str)
+  str=S:readln()
+  end
+  S:close()
 end
 
 end

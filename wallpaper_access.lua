@@ -21,10 +21,9 @@ end
 
 
 mod.get=function(self, source)
-local S, XML, tag, html, url, category
+local S, XML, tag, html, url
 
-category=source_parse(source, "nature")
-url=self.base_url..category
+url=URLWithCategory(self.baseurl, "", "nature", source)
 
 S=URLGet(url)
 if S ~= nil

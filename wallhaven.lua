@@ -10,8 +10,7 @@ local title=""
 local images={}
 
 
-category=source_parse(source, "nature")
-url="https://wallhaven.cc/api/v1/search?q=" .. category
+url=URLWithCategory("https://wallhaven.cc/api/v1/search?q=", "", "nature", source)
 
 S=URLGet(url)
 if S ~= nil

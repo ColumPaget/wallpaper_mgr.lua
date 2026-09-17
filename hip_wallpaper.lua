@@ -6,12 +6,10 @@ local mod={}
 
 
 mod.get=function(self, source)
-local S, XML, tag, html, url, category
+local S, XML, tag, html, url
 local items={}
 
-category=source_parse(source, "nature")
-url="https://hipwallpaper.com/search?q="..category
-
+url=URLWithCategory("https://hipwallpaper.com/search?q=", "", "nature", source)
 S=URLGet(url)
 if S ~= nil
 then

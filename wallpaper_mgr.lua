@@ -9,7 +9,7 @@ require("sys")
 require("dataparser")
 require("terminal")
 
-prog_version="3.3"
+prog_version="3.4"
 
 
 function URLGet(url)
@@ -74,13 +74,35 @@ toks=strutil.TOKENIZER(input, ":")
 source=toks:next()
 category=toks:remaining()
 else
-category=input
+--category=input
 end
 
 if strutil.strlen(category) ==0 then category=default_category end
 
 return category, source
 end
+
+
+-- the prefix tends to be the site name like "https://wallpapercave.com/"
+-- the source will have the form wallpapercave:nature, where 'nature' is the category
+-- the postfix tends to be '-wallpapers' or something like that
+-- build a URL out of all these parts
+function URLWithCategory(prefix, postfix, default_category, source)
+local len, str, url, category
+
+category=source_parse(source, default_category)
+len=strutil.strlen(postfix)
+url=prefix..category
+if len > 0
+then
+  str=string.sub(category, strutil.strlen(category) - (len-1))
+  if str ~= postfix then url=url .. postfix end
+end
+
+return url, category
+end
+
+
 
 
 function table_join(t1, t2)
@@ -144,9 +166,12 @@ end
 
 
 function IsImageURL(url)
-local extn, match
+local extn, match, pos
 
 if strutil.strlen(url) == 0 then return false end
+
+pos=string.find(url, "?")
+if pos ~= nil and pos > 0 then url=string.sub(url, 1, pos -1) end
 
 extn=string.lower(filesys.extn(url))
 for i,match in ipairs(settings.filetypes)
@@ -162,10 +187,10 @@ end
 function InitSettings()
 
 settings={}
-settings.filetypes={".jpg", ".jpeg", ".png"}
+settings.filetypes={".jpg", ".jpeg", ".png", ".webp"}
 settings.working_dir=process.getenv("HOME").."/.local/share/wallpaper/"
 settings.default_sources={
-"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities", "wallpapers13:nature-wallpapers/beach", "wallpapers13:nature-wallpapers/waterfalls", "wallpapers13:nature-wallpapers/flowers", "wallpapers13:nature-wallpapers/sunset", "wallpapers13:other-topics-wallpapers/church-cathedral", "wallpapers13:nature-wallpapers/landscapes", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:nature", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space", "wallhaven:mars", "chandra:stars", "chandra:galaxy", "chandra:clusters", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "esawebb:nebulae", "esawebb:galaxies", "esawebb:stars", "esawebb:solarsystem", "esa:earth", "eso:nebula", "eso:galaxy", "eso:telescope", "eso:observatory", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes", "archive.org:wallpaperscollection", "archive.org:wallpaper-1.2037", "archive.org:jcorl_white_sands", "archive.org:21590", "archive.org:macwallpapers", "archive.org:macos-wallpapers_202402", "archive.org:android6wallpapers", "archive.org:wallpapers-pack-selected-images", "sourcesplash:galaxy", "sourcesplash:forest"
+"bing:en-US", "bing:en-GB", "nasa:apod", "wallpapers13:cities", "wallpapers13:nature-wallpapers/beach", "wallpapers13:nature-wallpapers/waterfalls", "wallpapers13:nature-wallpapers/flowers", "wallpapers13:nature-wallpapers/sunset", "wallpapers13:other-topics-wallpapers/church-cathedral", "wallpapers13:nature-wallpapers/landscapes", "getwallpapers:ocean-scene-wallpaper", "getwallpapers:nature-desktop-wallpapers-backgrounds", "getwallpapers:milky-way-wallpaper-1920x1080", "getwallpapers:1920x1080-hd-autumn-wallpapers", "hipwallpapers:nature", "suwalls:flowers", "suwalls:beaches", "suwalls:abstract", "suwalls:nature", "suwalls:space", "wallpaperscraft:nature", "wallpaperscraft:space", "wallhaven:mars", "chandra:stars", "chandra:galaxy", "chandra:clusters", "esahubble:nebulae", "esahubble:galaxies", "esahubble:stars", "esahubble:starclusters", "esawebb:nebulae", "esawebb:galaxies", "esawebb:stars", "esawebb:solarsystem", "esa:earth", "eso:nebula", "eso:galaxy", "eso:telescope", "eso:observatory", "wikimedia:Category:Commons_featured_desktop_backgrounds", "wikimedia:Category:Hubble_images_of_galaxies", "wikimedia:Category:Hubble_images_of_nebulae", "wikimedia:User:Pfctdayelise/wallpapers", "wikimedia:User:Miya/POTY/Nature_views2008", "wikimedia:Lightning", "wikimedia:Fog", "wikimedia:Autumn", "wikimedia:Sunset", "wikimedia:Commons:Featured_pictures/Places/Other", "wikimedia:Commons:Featured_pictures/Places/Architecture/Exteriors", "wikimedia:Commons:Featured_pictures/Places/Architecture/Cityscapes", "archive.org:wallpaperscollection", "archive.org:wallpaper-1.2037", "archive.org:jcorl_white_sands", "archive.org:21590", "archive.org:macwallpapers", "archive.org:macos-wallpapers_202402", "archive.org:android6wallpapers", "archive.org:wallpapers-pack-selected-images", "sourcesplash:galaxy", "sourcesplash:forest", "wallpapercat:sunset", "wallpapercat:seascape", "wallpapercat:green-forest", "wallpapercat:arctic-ocean", "wallpapercat:waterfall", "wallpapercat:river", "wallpapercat:ocean", "wallpapercat:lake", "wallpapercat:skyline", "wallpapercat:hubble", "wallpapercat:galaxy", "wallpapercat:jupiter", "wallpapercat:saturn", "wallpapercat:pluto", "wallpapercave:arctic-ocean", "wallpapercave:lightning", "wallpapercave:cloud", "wallpapercave:waterfall", "charliewaite:colour-landscapes", "charliewaite:colour-architecture"
 }
 --"chandra:dwarf", "chandra:snr", "chandra:quasars", "chandra:nstars",  "chandra:clusters", "chandra:bh"}
 
@@ -191,7 +216,7 @@ if strutil.strlen(url) == 0 then return false end
 --if it already exists, don't add
 if self.items[url] ~= nil 
 then 
-	TermOut:puts("add url ~c" .. url.. "~0 to ~e" .. self.name .. "~0... ~e~malready exists~0\n")
+  TermOut:puts("add url ~c" .. url.. "~0 to ~e" .. self.name .. "~0... ~e~malready exists~0\n")
 else
   TermOut:puts("add url ~c" .. url.. "~0 to ~e" .. self.name.."~0 ... ~gadded~0\n")
   if extra == nil then extra="" end
@@ -428,6 +453,7 @@ source_type=toks:next()
 if source_type == "bing" then obj=InitBing()
 elseif source_type == "nasa" then obj=InitNASA()
 elseif source_type == "chandra" then obj=InitChandra()
+elseif source_type == "charliewaite" then obj=InitCharlieWaite()
 elseif source_type == "eso" then obj=InitESO()
 elseif source_type == "esa" then obj=InitESA("https://esa.int")
 elseif source_type == "esahubble" then obj=InitESA("https://esahubble.org")
@@ -440,6 +466,8 @@ elseif source_type == "wikimedia" then obj=InitWikimedia()
 elseif source_type == "wallhaven" then obj=InitWallhaven()
 elseif source_type == "sourcesplash" then obj=InitSourceSplash()
 elseif source_type == "wallpaperscraft" then obj=InitWallpapersCraft()
+elseif source_type == "wallpapercat" then obj=InitWallpaperCat()
+elseif source_type == "wallpapercave" then obj=InitWallpaperCave()
 elseif source_type == "suwalls" then obj=InitSUWalls()
 elseif source_type == "archive.org" then obj=InitArchiveOrg()
 elseif source_type == "archive_org" then obj=InitArchiveOrg()
@@ -447,6 +475,7 @@ elseif source_type == "local" then obj=InitLocalFiles()
 elseif source_type == "faves" then obj=InitLocalFiles(filesys.pathaddslash(settings.working_dir).."faves/")
 elseif source_type == "playlist" then obj=InitPlaylist()
 elseif source_type == "ssh" then obj=InitSSH()
+else print("ERROR: unknown source '"..source_type.."'")
 end
 
 return obj
@@ -622,6 +651,76 @@ return mod
 end
 
 
+
+--get images from a local directory
+
+
+function InitLocalFiles(root_dir)
+local mod={}
+
+mod.root_dir=""
+if strutil.strlen(root_dir) > 0 then mod.root_dir=filesys.pathaddslash(root_dir) end
+mod.files={}
+
+
+mod.new_image=function(self, path)
+local item={}
+
+item.url=path
+item.title=""
+item.description=""
+item.author=""
+table.insert(self.files, item)
+end
+
+mod.get=function(self, source)
+local item, path, str, GLOB, len
+
+path=filesys.pathaddslash(self.root_dir..string.sub(source, 7))
+
+print("GET LOCALFILES: "..path)
+
+GLOB=filesys.GLOB(path.."*")
+item=GLOB:next()
+while item ~= nil
+do
+  if GLOB:info().type == "file"
+  then
+   self:new_image(item)
+  elseif GLOB:info().type == "directory" and string.sub(item, 1, 1) ~= "."
+  then
+   len=strutil.strlen(self.root_dir)
+   if len > 0 and string.sub(item, 1, len)==self.root_dir then str=string.sub(item, len) 
+   else str=item
+   end
+   self:get("local:" .. str)
+  end
+
+  item=GLOB:next()
+end
+
+return SelectRandomItem(self.files)
+end
+
+
+
+mod.add_image=function(self, url, source)
+local dir, path, str
+
+str=hash.hashstr(url, "md5", "p64") .. "-" .. filesys.basename(url)
+dir=string.sub(source, 7).."/"
+path=dir .. str
+if filesys.exists(path) == false
+then
+filesys.mkdirPath(dir)
+filesys.copy(url, path)
+end
+
+
+end
+
+return mod
+end
 
 
 -- module to get daily wallpaper from bing.com
@@ -1079,6 +1178,7 @@ local images={}
 category=source_parse(source, "galaxy")
 str="https://chandra.harvard.edu/resources/desktops_" .. category .. ".html"
 
+
 S=URLGet(str)
 if S ~= nil
 then
@@ -1123,6 +1223,71 @@ end
 
 return mod
 end
+-- get images using the wallhaven API
+
+function InitCharlieWaite()
+local mod={}
+
+
+mod.get=function(self, source)
+local S, str, P, items, item, url
+local title=""
+local images={}
+
+url=URLWithCategory("https://charliewaite.com/", "", "colour-landscapes", source)
+
+S=URLGet(url)
+if S ~= nil
+then
+  str=S:readdoc()
+  XML=xml.XML(str)
+  S:close()
+
+  tag=XML:next()
+  while tag ~= nil
+  do
+      if tag.type=="noscript" 
+      then 
+      tag=XML:next()
+      if tag.type == "img" then self:img_tag(images, tag.data) end
+      end
+      tag=XML:next()
+  end
+
+
+--item=SelectResolutionItem(images)
+item=SelectRandomItem(images)
+end
+
+return item
+
+end
+
+
+-- on this site everything we need is in the <div> tag
+-- <div id="19687" data-fullimg="/w/full/1/3/3/19687-2560x1600-desktop-hd-sunset-wallpaper-image.jpg" data-or="2560x1600" data-author="rortiz" data-authorslug="rortiz" data-likes="1546" class="flexbox_item wall">
+mod.img_tag=function(self, images, data) 
+local url, image
+
+url=HtmlTagExtractAttrib(data, "src")
+if strutil.strlen(url) > 0
+then
+
+    image={}
+    image.url=url
+    image.author="Charlie Waite (https://charliewaite.com)"
+    image.description=HtmlTagExtractAttrib(data, "alt")
+
+    table.insert(images, image)
+end
+
+
+end
+
+
+
+return mod
+end
 -- module to select a random wallpaper from https://hipwallpaper.com/daily-wallpapers/
 
 
@@ -1131,12 +1296,10 @@ local mod={}
 
 
 mod.get=function(self, source)
-local S, XML, tag, html, url, category
+local S, XML, tag, html, url
 local items={}
 
-category=source_parse(source, "nature")
-url="https://hipwallpaper.com/search?q="..category
-
+url=URLWithCategory("https://hipwallpaper.com/search?q=", "", "nature", source)
 S=URLGet(url)
 if S ~= nil
 then
@@ -1168,76 +1331,6 @@ end
 return mod
 end
 
-
---get images from a local directory
-
-
-function InitLocalFiles(root_dir)
-local mod={}
-
-mod.root_dir=""
-if strutil.strlen(root_dir) > 0 then mod.root_dir=filesys.pathaddslash(root_dir) end
-mod.files={}
-
-
-mod.new_image=function(self, path)
-local item={}
-
-item.url=path
-item.title=""
-item.description=""
-item.author=""
-table.insert(self.files, item)
-end
-
-mod.get=function(self, source)
-local item, path, str, GLOB, len
-
-path=filesys.pathaddslash(self.root_dir..string.sub(source, 7))
-
-print("GET LOCALFILES: "..path)
-
-GLOB=filesys.GLOB(path.."*")
-item=GLOB:next()
-while item ~= nil
-do
-  if GLOB:info().type == "file"
-  then
-   self:new_image(item)
-  elseif GLOB:info().type == "directory" and string.sub(item, 1, 1) ~= "."
-  then
-   len=strutil.strlen(self.root_dir)
-   if len > 0 and string.sub(item, 1, len)==self.root_dir then str=string.sub(item, len) 
-   else str=item
-   end
-   self:get("local:" .. str)
-  end
-
-  item=GLOB:next()
-end
-
-return SelectRandomItem(self.files)
-end
-
-
-
-mod.add_image=function(self, url, source)
-local dir, path, str
-
-str=hash.hashstr(url, "md5", "p64") .. "-" .. filesys.basename(url)
-dir=string.sub(source, 7).."/"
-path=dir .. str
-if filesys.exists(path) == false
-then
-filesys.mkdirPath(dir)
-filesys.copy(url, path)
-end
-
-
-end
-
-return mod
-end
 -- module for pulling a random wallpaper from https://www.wallpapers13.com/
 
 
@@ -1448,9 +1541,7 @@ local S, str, P, items, item
 local title=""
 local images={}
 
-
-category=source_parse(source, "galaxy")
-url="https://www.sourcesplash.com/api/search?q=" .. category
+url=URLWithCategory("https://www.sourcesplash.com/api/search?q=/", "", "galaxy", source)
 
 S=URLGet(url)
 if S ~= nil
@@ -1548,12 +1639,11 @@ end
 
 
 mod.get=function(self, source)
-local S, html, str, XML, category, item
+local S, html, str, XML, category, item, url
 
-category=source_parse(source, "nature")
-str="https://suwalls.com/" .. category
+url,category=URLWithCategory("https://suwalls.com/", "", "nature", source)
 
-S=URLGet(str)
+S=URLGet(url)
 if S ~= nil
 then
   html=S:readdoc()
@@ -1627,7 +1717,7 @@ end
 mod.get=function(self, source)
 local S, html, str, XML, category, len, item
 
-category=source_parse(source, "cities")
+category=source_parse(source, "city")
 str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080/page%d", category, math.random(100))
 
 S=URLGet(str)
@@ -1670,6 +1760,132 @@ return mod
 end
 -- get images using the wallhaven API
 
+function InitWallpaperCat()
+local mod={}
+
+
+mod.get=function(self, source)
+local S, str, P, items, item
+local title=""
+local images={}
+
+url=URLWithCategory("https://wallpapercat.com/", "-wallpapers", "green-forest", source)
+
+S=URLGet(url)
+if S ~= nil
+then
+  str=S:readdoc()
+  XML=xml.XML(str)
+  S:close()
+
+  tag=XML:next()
+  while tag ~= nil
+  do
+      if tag.type=="div" then self:div_tag(images, tag.data) end
+      tag=XML:next()
+  end
+
+
+--item=SelectResolutionItem(images)
+item=SelectRandomItem(images)
+end
+
+return item
+
+end
+
+
+-- on this site everything we need is in the <div> tag
+-- <div id="19687" data-fullimg="/w/full/1/3/3/19687-2560x1600-desktop-hd-sunset-wallpaper-image.jpg" data-or="2560x1600" data-author="rortiz" data-authorslug="rortiz" data-likes="1546" class="flexbox_item wall">
+mod.div_tag=function(self, images, data) 
+local url, image
+
+url=HtmlTagExtractAttrib(data, "data-fullimg")
+if strutil.strlen(url) > 0
+then
+
+    image={}
+    image.url="https://wallpapercat.com/" .. url
+    image.author=HtmlTagExtractAttrib(data, "author")
+    image.resolution=HtmlTagExtractAttrib(data, "data-or")
+
+    table.insert(images, image)
+end
+
+
+end
+
+
+
+return mod
+end
+-- get images using the wallhaven API
+
+function InitWallpaperCave()
+local mod={}
+
+
+mod.get=function(self, source)
+local S, str, P, items, item
+local title=""
+local images={}
+
+url=URLWithCategory("https://wallpapercave.com/", "-wallpapers", "arctic-ocean", source)
+
+S=URLGet(url)
+if S ~= nil
+then
+  str=S:readdoc()
+  XML=xml.XML(str)
+  S:close()
+
+  tag=XML:next()
+  while tag ~= nil
+  do
+      if tag.type=="picture" then self:picture(images, XML) end
+      tag=XML:next()
+  end
+
+
+--item=SelectResolutionItem(images)
+item=SelectRandomItem(images)
+end
+
+return item
+
+end
+
+
+-- on this site everything we need is in the <div> tag
+-- <div id="19687" data-fullimg="/w/full/1/3/3/19687-2560x1600-desktop-hd-sunset-wallpaper-image.jpg" data-or="2560x1600" data-author="rortiz" data-authorslug="rortiz" data-likes="1546" class="flexbox_item wall">
+mod.picture=function(self, images, XML) 
+local url, image, tag, image
+
+  tag=XML:next()
+  while tag ~= nil
+  do
+      if tag.type=="/picture" then break end
+			if tag.type=="img" and HtmlTagExtractAttrib(tag.data, "class") == "wimg"
+			then
+			image={}
+			image.url="https://wallpapercave.com/" .. HtmlTagExtractAttrib(tag.data, "src")
+			image.resolution=HtmlTagExtractAttrib(tag.data, "width") .. "x" ..  HtmlTagExtractAttrib(tag.data, "height") 
+
+    	table.insert(images, image)
+			end
+      tag=XML:next()
+  end
+
+
+
+end
+
+
+
+return mod
+end
+-- get images using the wallhaven API
+
 function InitWallhaven()
 local mod={}
 
@@ -1680,8 +1896,7 @@ local title=""
 local images={}
 
 
-category=source_parse(source, "nature")
-url="https://wallhaven.cc/api/v1/search?q=" .. category
+url=URLWithCategory("https://wallhaven.cc/api/v1/search?q=", "", "nature", source)
 
 S=URLGet(url)
 if S ~= nil
@@ -2313,21 +2528,21 @@ local str, toks, url, list_type, catagory
 str=S:readln()
 while str ~= nil
 do
-	str=strutil.trim(str)
-	toks=strutil.TOKENIZER(str, "\\S", "Q")
-	url=toks:next()
-	list_type=toks:next()
-	
-	if string.sub(list_type, 1, 6) == "block:" then blocklist:add(url) 
-	elseif string.sub(list_type, 1, 5) == "fave:" 
-	then 
-	catagory=string.sub(list_type, 6)
-	favelist:add(url, catagory)
+  str=strutil.trim(str)
+  toks=strutil.TOKENIZER(str, "\\S", "Q")
+  url=toks:next()
+  list_type=toks:next()
+  
+  if string.sub(list_type, 1, 6) == "block:" then blocklist:add(url) 
+  elseif string.sub(list_type, 1, 5) == "fave:" 
+  then 
+  catagory=string.sub(list_type, 6)
+  favelist:add(url, catagory)
   SaveWallpaper(url, settings.working_dir.."/faves/".. catagory, settings.working_dir.."/faves/") 
   end
 
-	
-	str=S:readln()
+  
+  str=S:readln()
 end
 
 end,
@@ -2442,7 +2657,7 @@ print("  -resolution <resolution>                         get images matching <r
 print("  -exe_path <path>                                 colon-separated search path for 'setroot' programs. e.g. -exec_path /usr/X11R7/bin:/usr/bin")
 print("  -res <resolution>                                get images matching <resolution>")
 print("  -proxy <url>                                     use given proxy server")
-print("  -filetypes <list>                                comma-seperated list of file extensions to accept from image sources, e.g. '.jpg,.jpeg' or 'jpg,jpeg'. Be wary that most sites return .jpg, so if you leave that out of the list, you will get few (or no) images. Default is '.jpg,.jpeg,.png'")
+print("  -filetypes <list>                                comma-seperated list of file extensions to accept from image sources, e.g. '.jpg,.jpeg' or 'jpg,jpeg'. Be wary that most sites return .jpg, so if you leave that out of the list, you will get few (or no) images. Default is '.jpg,.jpeg,.png,.webp'")
 print("  -?                                               this help")
 print("  -help                                            this help")
 print("  --help                                           this help")

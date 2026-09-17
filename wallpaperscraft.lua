@@ -41,7 +41,7 @@ end
 mod.get=function(self, source)
 local S, html, str, XML, category, len, item
 
-category=source_parse(source, "cities")
+category=source_parse(source, "city")
 str=string.format("https://wallpaperscraft.com/catalog/%s/1920x1080/page%d", category, math.random(100))
 
 S=URLGet(str)

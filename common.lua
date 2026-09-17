@@ -9,7 +9,7 @@ require("sys")
 require("dataparser")
 require("terminal")
 
-prog_version="3.3"
+prog_version="3.4"
 
 
 function URLGet(url)
@@ -74,13 +74,35 @@ toks=strutil.TOKENIZER(input, ":")
 source=toks:next()
 category=toks:remaining()
 else
-category=input
+--category=input
 end
 
 if strutil.strlen(category) ==0 then category=default_category end
 
 return category, source
 end
+
+
+-- the prefix tends to be the site name like "https://wallpapercave.com/"
+-- the source will have the form wallpapercave:nature, where 'nature' is the category
+-- the postfix tends to be '-wallpapers' or something like that
+-- build a URL out of all these parts
+function URLWithCategory(prefix, postfix, default_category, source)
+local len, str, url, category
+
+category=source_parse(source, default_category)
+len=strutil.strlen(postfix)
+url=prefix..category
+if len > 0
+then
+  str=string.sub(category, strutil.strlen(category) - (len-1))
+  if str ~= postfix then url=url .. postfix end
+end
+
+return url, category
+end
+
+
 
 
 function table_join(t1, t2)
@@ -144,9 +166,12 @@ end
 
 
 function IsImageURL(url)
-local extn, match
+local extn, match, pos
 
 if strutil.strlen(url) == 0 then return false end
+
+pos=string.find(url, "?")
+if pos ~= nil and pos > 0 then url=string.sub(url, 1, pos -1) end
 
 extn=string.lower(filesys.extn(url))
 for i,match in ipairs(settings.filetypes)

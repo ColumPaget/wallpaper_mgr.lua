@@ -9,9 +9,7 @@ local S, str, P, items, item
 local title=""
 local images={}
 
-
-category=source_parse(source, "galaxy")
-url="https://www.sourcesplash.com/api/search?q=" .. category
+url=URLWithCategory("https://www.sourcesplash.com/api/search?q=/", "", "galaxy", source)
 
 S=URLGet(url)
 if S ~= nil

@@ -55,12 +55,11 @@ end
 
 
 mod.get=function(self, source)
-local S, html, str, XML, category, item
+local S, html, str, XML, category, item, url
 
-category=source_parse(source, "nature")
-str="https://suwalls.com/" .. category
+url,category=URLWithCategory("https://suwalls.com/", "", "nature", source)
 
-S=URLGet(str)
+S=URLGet(url)
 if S ~= nil
 then
   html=S:readdoc()

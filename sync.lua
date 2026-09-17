@@ -26,21 +26,21 @@ local str, toks, url, list_type, catagory
 str=S:readln()
 while str ~= nil
 do
-	str=strutil.trim(str)
-	toks=strutil.TOKENIZER(str, "\\S", "Q")
-	url=toks:next()
-	list_type=toks:next()
-	
-	if string.sub(list_type, 1, 6) == "block:" then blocklist:add(url) 
-	elseif string.sub(list_type, 1, 5) == "fave:" 
-	then 
-	catagory=string.sub(list_type, 6)
-	favelist:add(url, catagory)
+  str=strutil.trim(str)
+  toks=strutil.TOKENIZER(str, "\\S", "Q")
+  url=toks:next()
+  list_type=toks:next()
+  
+  if string.sub(list_type, 1, 6) == "block:" then blocklist:add(url) 
+  elseif string.sub(list_type, 1, 5) == "fave:" 
+  then 
+  catagory=string.sub(list_type, 6)
+  favelist:add(url, catagory)
   SaveWallpaper(url, settings.working_dir.."/faves/".. catagory, settings.working_dir.."/faves/") 
   end
 
-	
-	str=S:readln()
+  
+  str=S:readln()
 end
 
 end,

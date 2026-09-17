@@ -1,3 +1,9 @@
+v3.4 (2026-09-17)
+ * IsImageURL now supports URLs that have ?query=whatever query parameters
+ * added wallpapercat.com
+ * added wallpapercave.com
+ * added charliewaite.com
+
 v3.3 (2026-04-27)
  * fix bing
  * fix 'local sources' (issue created when image items went from being a string to an object)

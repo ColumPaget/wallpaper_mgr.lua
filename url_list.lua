@@ -19,7 +19,7 @@ if strutil.strlen(url) == 0 then return false end
 --if it already exists, don't add
 if self.items[url] ~= nil 
 then 
-	TermOut:puts("add url ~c" .. url.. "~0 to ~e" .. self.name .. "~0... ~e~malready exists~0\n")
+  TermOut:puts("add url ~c" .. url.. "~0 to ~e" .. self.name .. "~0... ~e~malready exists~0\n")
 else
   TermOut:puts("add url ~c" .. url.. "~0 to ~e" .. self.name.."~0 ... ~gadded~0\n")
   if extra == nil then extra="" end
